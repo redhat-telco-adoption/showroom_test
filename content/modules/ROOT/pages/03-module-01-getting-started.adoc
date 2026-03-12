@@ -28,7 +28,7 @@ include::partial$open-web-terminal.adoc[]
 
 . In the web terminal, log in to the OpenShift cluster:
 +
-[source,bash]
+[source,bash,subs="attributes+"]
 ----
 {login_command}
 {openshift_console_url}
