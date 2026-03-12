@@ -1,0 +1,128 @@
+= Lab 6.3: Wrong Image Tag
+include::_attributes.adoc[]
+
+[.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Application Lifecycle
+
+== Overview
+
+The application `lab-6-3-app` cannot start because the container image tag does not exist. The Deployment references a non-existent image tag, causing an `ImagePullBackOff` error. Your mission is to identify the bad image reference and correct it to a valid tag.
+
+== Explore the Problem
+
+include::partial$open-web-terminal.adoc[]
+
+Check pod status in your namespace:
+
+include::partial$check-pod-status.adoc[]
+
+You should see something like:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS             RESTARTS   AGE
+lab-6-3-app-2p3q4r5s6-t7u8v   0/1     ImagePullBackOff   0          2m
+----
+
+Check events for more details:
+
+include::partial$check-events.adoc[]
+
+Look for image pull error messages:
+
+[.console-output]
+[source]
+----
+Warning  Failed   ...  Failed to pull image "registry.access.redhat.com/ubi8/httpd-24:v99.99": manifest unknown
+Warning  Failed   ...  Error: ImagePullBackOff
+----
+
+== Diagnose
+
+[tabs]
+====
+Web Console::
++
+--
+. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Click the `lab-6-3-app` pod
+. Review the *Events* tab -- note the "manifest unknown" error
+. This means the image tag `v99.99` does not exist in the registry
+. Navigate to *Workloads -> Deployments*, click `lab-6-3-app`, and check the image reference
+--
+
+Web Terminal (`oc`)::
++
+--
+Check the image reference:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get deployment lab-6-3-app -n {user}-lab -o jsonpath='{.spec.template.spec.containers[0].image}'
+----
+
+[.console-output]
+[source]
+----
+registry.access.redhat.com/ubi8/httpd-24:v99.99
+----
+
+The tag `v99.99` does not exist. You need to use a valid tag like `latest`.
+--
+====
+
+== Hints
+
+[%collapsible]
+.Hint 1 -- Where to look
+====
+The `ImagePullBackOff` error means the container runtime cannot pull the specified image. This usually means the image or tag does not exist, or you lack credentials (but this image is public).
+====
+
+[%collapsible]
+.Hint 2 -- What's wrong
+====
+The image tag `v99.99` does not exist for the `ubi8/httpd-24` image. The image is publicly available at `registry.access.redhat.com/ubi8/httpd-24` but you need a valid tag.
+====
+
+[%collapsible]
+.Hint 3 -- Almost there
+====
+Change the image tag from `v99.99` to `latest`. Use `oc set image` to update the Deployment.
+====
+
+== Fix the Issue
+
+Update the container image reference to use a valid tag that exists in the registry.
+
+[%collapsible]
+.Reveal Solution (Instructor Reference Only)
+====
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc set image deployment/lab-6-3-app \
+  lab-6-3-app=registry.access.redhat.com/ubi8/httpd-24:latest \
+  -n {user}-lab
+----
+
+This triggers a new rollout with the correct image tag.
+====
+
+== Verify Your Fix
+
+include::partial$check-pod-status.adoc[]
+
+The pod should now show `Running`:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-6-3-app-5w6x7y8z9-a0b1c   1/1     Running   0          20s
+----
+
+include::partial$verify-route.adoc[]
+
+Open the Route URL -- you should see the default Apache HTTP Server test page.

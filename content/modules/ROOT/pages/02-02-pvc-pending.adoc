@@ -1,0 +1,175 @@
+= Lab 2.2: PVC Pending
+include::_attributes.adoc[]
+
+[.label.label-yellow]#Intermediate# | *Persona:* Platform Engineer | *Category:* Storage
+
+== Overview
+
+The application `lab-2-2-app` is stuck in `Pending` state. Unlike the previous lab, the PVC exists but it is also stuck in `Pending`. The PVC requests a StorageClass that does not exist on the cluster. Your mission is to fix the PVC so it can bind and the pod can start.
+
+== Explore the Problem
+
+include::partial$open-web-terminal.adoc[]
+
+Check pod status in your namespace:
+
+include::partial$check-pod-status.adoc[]
+
+You should see something like:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-2-2-app-3a5b7c9d1-w8x6y   0/1     Pending   0          2m
+----
+
+Check the PVC status:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get pvc -n {user}-lab
+----
+
+[.console-output]
+[source,bash]
+----
+NAME              STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+lab-2-2-data      Pending                                      gold-storage   2m
+----
+
+== Diagnose
+
+[tabs]
+====
+Web Console::
++
+--
+. Navigate to *Storage -> PersistentVolumeClaims* in namespace `{user}-lab`
+. Click on `lab-2-2-data` -- notice the status is `Pending`
+. Review the *Events* tab for provisioning errors
+. Note the StorageClass `gold-storage` -- navigate to *Storage -> StorageClasses* and confirm it does not exist
+--
+
+Web Terminal (`oc`)::
++
+--
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc describe pvc lab-2-2-data -n {user}-lab
+----
+
+Look for the event:
+
+[.console-output]
+[source]
+----
+Warning  ProvisioningFailed  ...  storageclass.storage.k8s.io "gold-storage" not found
+----
+
+List available StorageClasses:
+
+[.console-input]
+[source,bash]
+----
+oc get storageclass
+----
+--
+====
+
+== Hints
+
+[%collapsible]
+.Hint 1 -- Where to look
+====
+The PVC references a StorageClass named `gold-storage` that does not exist on this cluster. You need to find out what StorageClasses are available and update the PVC accordingly.
+====
+
+[%collapsible]
+.Hint 2 -- What to change
+====
+Run `oc get storageclass` to see the available StorageClasses. The default StorageClass (marked with `(default)`) is what you should use. You cannot edit a PVC's StorageClass directly -- you need to delete and recreate the PVC.
+====
+
+[%collapsible]
+.Hint 3 -- Almost there
+====
+Delete the existing PVC, then create a new one with the same name but using the cluster's default StorageClass (or omit the `storageClassName` field entirely to use the default).
+====
+
+== Fix the Issue
+
+Replace the PVC `lab-2-2-data` with one that uses an available StorageClass. You will need to delete the broken PVC and create a corrected one.
+
+[%collapsible]
+.Reveal Solution (Instructor Reference Only)
+====
+Delete the broken PVC:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc delete pvc lab-2-2-data -n {user}-lab
+----
+
+Create a corrected PVC without specifying a StorageClass (uses the default):
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+cat <<'EOF' | oc apply -n {user}-lab -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lab-2-2-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+EOF
+----
+
+Delete the pending pod to trigger rescheduling:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc delete pod -l app=lab-2-2-app -n {user}-lab
+----
+====
+
+== Verify Your Fix
+
+Check that the PVC is now bound:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get pvc lab-2-2-data -n {user}-lab
+----
+
+[.console-output]
+[source,bash]
+----
+NAME           STATUS   VOLUME       CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+lab-2-2-data   Bound    pv-xxxxx     1Gi        RWO            gp3-csi        10s
+----
+
+include::partial$check-pod-status.adoc[]
+
+The pod should now show `Running`:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-2-2-app-3a5b7c9d1-w8x6y   1/1     Running   0          15s
+----
+
+include::partial$verify-route.adoc[]
+
+Open the Route URL -- you should see the application page loading successfully.

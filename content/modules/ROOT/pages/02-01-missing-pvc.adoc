@@ -1,0 +1,157 @@
+= Lab 2.1: Missing PVC
+include::_attributes.adoc[]
+
+[.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Storage
+
+== Overview
+
+The application `lab-2-1-app` is stuck in `Pending` state. The pod cannot be scheduled because it references a PersistentVolumeClaim that does not exist. Your mission is to create the missing PVC so the pod can be scheduled and start successfully.
+
+== Explore the Problem
+
+include::partial$open-web-terminal.adoc[]
+
+Check pod status in your namespace:
+
+include::partial$check-pod-status.adoc[]
+
+You should see something like:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-2-1-app-4c7d8e9f6-p3q5r   0/1     Pending   0          1m
+----
+
+Check events for more details:
+
+include::partial$check-events.adoc[]
+
+Look for an event message similar to:
+
+[.console-output]
+[source]
+----
+Warning  FailedScheduling  ...  persistentvolumeclaim "data-volume" not found
+----
+
+== Diagnose
+
+[tabs]
+====
+Web Console::
++
+--
+. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Click the `lab-2-1-app` pod -- notice it is in `Pending` state
+. Review the *Events* tab for the PVC error
+. Navigate to *Storage -> PersistentVolumeClaims* and confirm `data-volume` does not exist
+. Go to *Workloads -> Deployments*, click `lab-2-1-app`, and check the YAML for volume definitions
+--
+
+Web Terminal (`oc`)::
++
+--
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc describe pod -l app=lab-2-1-app -n {user}-lab
+----
+
+Check the *Events* section for the PVC error. Then inspect the Deployment:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get deployment lab-2-1-app -n {user}-lab -o yaml | grep -A 10 volumes
+----
+
+Verify the PVC does not exist:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get pvc data-volume -n {user}-lab
+----
+--
+====
+
+== Hints
+
+[%collapsible]
+.Hint 1 -- Where to look
+====
+The Deployment references a PVC named `data-volume` in its volumes section. This PVC needs to be created before the pod can be scheduled.
+====
+
+[%collapsible]
+.Hint 2 -- What to create
+====
+You need to create a PersistentVolumeClaim named `data-volume` with `ReadWriteOnce` access mode and a reasonable size (e.g., `1Gi`). Use the cluster's default StorageClass.
+====
+
+[%collapsible]
+.Hint 3 -- Almost there
+====
+Create the PVC with `oc apply -f` using a YAML manifest, or use `oc create` to create it imperatively. You do not need to specify a StorageClass -- the cluster default will be used.
+====
+
+== Fix the Issue
+
+Create the missing PersistentVolumeClaim named `data-volume` in the `{user}-lab` namespace. It should use `ReadWriteOnce` access mode.
+
+[%collapsible]
+.Reveal Solution (Instructor Reference Only)
+====
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+cat <<'EOF' | oc apply -n {user}-lab -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-volume
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+EOF
+----
+
+The PVC will bind to an available PV, and the pod will transition from `Pending` to `Running`.
+====
+
+== Verify Your Fix
+
+Check that the PVC is bound:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get pvc data-volume -n {user}-lab
+----
+
+[.console-output]
+[source,bash]
+----
+NAME          STATUS   VOLUME       CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+data-volume   Bound    pv-xxxxx     1Gi        RWO            gp3-csi        10s
+----
+
+include::partial$check-pod-status.adoc[]
+
+The pod should now show `Running`:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-2-1-app-4c7d8e9f6-p3q5r   1/1     Running   0          15s
+----
+
+include::partial$verify-route.adoc[]
+
+Open the Route URL -- you should see a page showing timestamp entries written to the persistent volume.

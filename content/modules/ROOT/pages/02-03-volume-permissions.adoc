@@ -1,0 +1,158 @@
+= Lab 2.3: Volume Permissions
+include::_attributes.adoc[]
+
+[.label.label-yellow]#Intermediate# | *Persona:* Platform Engineer | *Category:* Storage
+
+== Overview
+
+The application `lab-2-3-app` starts but fails to operate correctly. The container logs reveal `Permission denied` errors when trying to write to the mounted volume at `/data`. Your mission is to diagnose the volume ownership issue and fix the Deployment so the container process can write to the volume.
+
+== Explore the Problem
+
+include::partial$open-web-terminal.adoc[]
+
+Check pod status in your namespace:
+
+include::partial$check-pod-status.adoc[]
+
+The pod may appear as `Running` but with errors, or as `CrashLoopBackOff`:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS             RESTARTS      AGE
+lab-2-3-app-9e8d7c6b5-h2g4f   0/1     CrashLoopBackOff   3             2m
+----
+
+Check container logs:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc logs -l app=lab-2-3-app -n {user}-lab --previous
+----
+
+[.console-output]
+[source]
+----
+Starting application...
+Writing data to /data/output.log
+/docker-entrypoint.sh: Permission denied: /data/output.log
+----
+
+== Diagnose
+
+[tabs]
+====
+Web Console::
++
+--
+. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Click on the `lab-2-3-app` pod
+. Review the *Logs* tab to see the `Permission denied` error
+. Click the *Terminal* tab to open a shell in the container (if the pod is running)
+. Check the volume ownership with `ls -la /data`
+--
+
+Web Terminal (`oc`)::
++
+--
+If the pod is running (even briefly), exec into it to check permissions:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc debug deployment/lab-2-3-app -n {user}-lab -- ls -la /data
+----
+
+Check what user the container runs as:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc debug deployment/lab-2-3-app -n {user}-lab -- id
+----
+
+You will likely see that the volume is owned by `root` but the container runs as a non-root user (e.g., UID 1000).
+--
+====
+
+== Hints
+
+[%collapsible]
+.Hint 1 -- Where to look
+====
+The issue is about filesystem permissions on the mounted volume. When a PVC is first mounted, the filesystem is owned by root. If the container process runs as a non-root user, it cannot write to the volume.
+====
+
+[%collapsible]
+.Hint 2 -- What needs to change
+====
+Kubernetes provides a `securityContext` field at the pod level that can set the group ownership of mounted volumes. Look into the `fsGroup` setting.
+====
+
+[%collapsible]
+.Hint 3 -- Almost there
+====
+Add `securityContext.fsGroup: 1000` to the pod spec (not the container spec). This tells Kubernetes to change the group ownership of all mounted volumes to GID 1000, which matches the container user.
+====
+
+== Fix the Issue
+
+Modify the Deployment's pod security context to ensure the mounted volume is accessible by the container process. You need to set the `fsGroup` field.
+
+[%collapsible]
+.Reveal Solution (Instructor Reference Only)
+====
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc patch deployment lab-2-3-app -n {user}-lab --type=json \
+  -p='[{"op": "add", "path": "/spec/template/spec/securityContext", "value": {"fsGroup": 1000}}]'
+----
+
+Alternatively, edit the Deployment YAML directly:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc edit deployment lab-2-3-app -n {user}-lab
+----
+
+Add under `spec.template.spec`:
+
+[source,yaml]
+----
+securityContext:
+  fsGroup: 1000
+----
+
+This triggers a new rollout with the corrected volume permissions.
+====
+
+== Verify Your Fix
+
+include::partial$check-pod-status.adoc[]
+
+The pod should now show `Running`:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-2-3-app-2b3c4d5e6-j8k9l   1/1     Running   0          20s
+----
+
+Verify the volume permissions:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc exec deployment/lab-2-3-app -n {user}-lab -- ls -la /data
+----
+
+The `/data` directory should now show group ownership of `1000`.
+
+include::partial$verify-route.adoc[]
+
+Open the Route URL -- you should see: *"Data written successfully"* with timestamps showing successful writes.

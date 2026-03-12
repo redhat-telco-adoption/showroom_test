@@ -1,0 +1,171 @@
+= Lab 4.1: Service Selector Mismatch
+include::_attributes.adoc[]
+
+[.label.label-yellow]#Intermediate# | *Persona:* Developer | *Category:* Networking & Routing
+
+== Overview
+
+The application `lab-4-1-app` pods are running and healthy, but accessing the Route returns a `503 Service Unavailable` error. The Service is not routing traffic to the pods because of a label mismatch between the Service selector and the pod labels. Your mission is to find and fix the mismatch.
+
+== Explore the Problem
+
+include::partial$open-web-terminal.adoc[]
+
+Check pod status in your namespace:
+
+include::partial$check-pod-status.adoc[]
+
+The pods look healthy:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-4-1-app-6c7d8e9f0-a1b2c   1/1     Running   0          5m
+----
+
+But the Route returns 503:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+curl -s -o /dev/null -w "%{http_code}" $(oc get route lab-4-1-route -n {user}-lab -o jsonpath='{.spec.host}') -k
+----
+
+[.console-output]
+[source]
+----
+503
+----
+
+== Diagnose
+
+[tabs]
+====
+Web Console::
++
+--
+. Navigate to *Networking -> Services* in namespace `{user}-lab`
+. Click `lab-4-1-svc` and note the *Selector* field (e.g., `app=myapp`)
+. Navigate to *Workloads -> Pods* and click on the running pod
+. Check the pod's *Labels* -- notice the label is `app=my-app` (with a hyphen)
+. The selector `app=myapp` does not match the label `app=my-app`
+--
+
+Web Terminal (`oc`)::
++
+--
+Check the Service selector:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get svc lab-4-1-svc -n {user}-lab -o jsonpath='{.spec.selector}'
+----
+
+[.console-output]
+[source,json]
+----
+{"app":"myapp"}
+----
+
+Check the pod labels:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get pods -n {user}-lab -l app=lab-4-1-app --show-labels
+----
+
+Check if the Service has any endpoints:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get endpoints lab-4-1-svc -n {user}-lab
+----
+
+[.console-output]
+[source,bash]
+----
+NAME          ENDPOINTS   AGE
+lab-4-1-svc   <none>      5m
+----
+
+Empty endpoints confirms the selector mismatch.
+--
+====
+
+== Hints
+
+[%collapsible]
+.Hint 1 -- Where to look
+====
+The Service has a `selector` that determines which pods receive traffic. Compare the Service's selector with the actual labels on the pods. Use `oc get endpoints` to verify whether the Service finds any matching pods.
+====
+
+[%collapsible]
+.Hint 2 -- What's wrong
+====
+The Service selector is `app: myapp` but the pods have the label `app: my-app`. The hyphen makes the difference -- the selector must exactly match the pod labels.
+====
+
+[%collapsible]
+.Hint 3 -- Almost there
+====
+Edit the Service to change its selector from `app: myapp` to `app: my-app` to match the pod labels. Use `oc edit svc` or `oc patch`.
+====
+
+== Fix the Issue
+
+Update the Service selector to match the actual pod labels so that endpoints are populated and traffic flows correctly.
+
+[%collapsible]
+.Reveal Solution (Instructor Reference Only)
+====
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc patch svc lab-4-1-svc -n {user}-lab \
+  --type=json -p='[{"op": "replace", "path": "/spec/selector/app", "value": "my-app"}]'
+----
+
+Alternatively:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc edit svc lab-4-1-svc -n {user}-lab
+----
+
+Change `app: myapp` to `app: my-app` under `spec.selector`.
+====
+
+== Verify Your Fix
+
+Check that endpoints are now populated:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get endpoints lab-4-1-svc -n {user}-lab
+----
+
+[.console-output]
+[source,bash]
+----
+NAME          ENDPOINTS         AGE
+lab-4-1-svc   10.128.2.15:8080  5m
+----
+
+Test the Route:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+curl -s $(oc get route lab-4-1-route -n {user}-lab -o jsonpath='{.spec.host}') -k | head -5
+----
+
+include::partial$verify-route.adoc[]
+
+Open the Route URL -- you should see the application page loading successfully.

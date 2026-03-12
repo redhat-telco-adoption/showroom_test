@@ -1,22 +1,15 @@
-Check the logs of a failing pod to understand what went wrong:
+Check container logs:
 
-[source,bash]
+[.console-input]
+[source,bash,subs="attributes+"]
 ----
-oc logs <pod-name>
-----
-
-If the pod has restarted, check the previous container's logs for the crash reason:
-
-[source,bash]
-----
-oc logs <pod-name> --previous
+oc logs -l app=<app-name> -n {user}-lab
 ----
 
-To follow logs in real time:
+For crashed containers, check previous logs:
 
-[source,bash]
+[.console-input]
+[source,bash,subs="attributes+"]
 ----
-oc logs <pod-name> -f
+oc logs -l app=<app-name> -n {user}-lab --previous
 ----
-
-TIP: If a pod has multiple containers, specify the container name with `-c <container-name>`.

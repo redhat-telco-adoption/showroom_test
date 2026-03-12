@@ -1,311 +1,262 @@
-= Troubleshooting cheatsheet
-include::partial$_attributes.adoc[]
+= oc Cheat Sheet
+include::_attributes.adoc[]
 
-A quick reference for the diagnostic commands and failure patterns covered in this workshop. Keep this page open while working through the modules.
+A quick reference of commonly used `oc` commands for troubleshooting OpenShift applications.
 
-== The four-step diagnostic workflow
+== Pods
 
-Use this sequence for every pod failure:
-
-. Check pod status and identify which pods are not `Running`:
-+
-[source,bash]
-----
-oc get pods -n <namespace>
-----
-
-. Describe the failing pod to read events, container state, and conditions:
-+
-[source,bash]
-----
-oc describe pod <pod-name> -n <namespace>
-----
-
-. Read the container logs (add `--previous` for crashed containers):
-+
-[source,bash]
-----
-oc logs <pod-name> -n <namespace>
-oc logs <pod-name> --previous -n <namespace>
-----
-
-. Check the namespace event timeline:
-+
-[source,bash]
-----
-oc get events -n <namespace> --sort-by='.lastTimestamp'
-----
-
-TIP: When no pods exist for a deployment, skip to `oc describe replicaset -l app=<name>` to find admission failures.
-
-== Pod status quick reference
-
-[cols="1,2,2",options="header"]
+[cols="2,3", options="header"]
 |===
-|Status |Meaning |First command to run
+| Command | Description
 
-|`Pending`
-|Pod cannot be scheduled or is waiting for a resource
-|`oc describe pod` → check Events for scheduler or volume errors
+| `oc get pods -n <ns>`
+| List all pods in a namespace
 
-|`CrashLoopBackOff`
-|Container starts but exits repeatedly
-|`oc logs --previous` → read crash reason in app logs
+| `oc get pods -n <ns> -o wide`
+| List pods with node and IP details
 
-|`ImagePullBackOff`
-|Container image cannot be pulled
-|`oc describe pod` → check Events for `401` (credentials) vs `404` (tag not found)
+| `oc describe pod <name> -n <ns>`
+| Detailed pod info including events
 
-|`CreateContainerConfigError`
-|ConfigMap or Secret exists but a key is missing or misspelled
-|`oc describe pod` → Events show `couldn't find key <X>`
+| `oc logs <pod> -n <ns>`
+| View container logs
 
-|`OOMKilled`
-|Container exceeded its memory limit
-|`oc describe pod` → Last State shows `Reason: OOMKilled, Exit Code: 137`
+| `oc logs <pod> -n <ns> --previous`
+| View logs from previous crashed container
 
-|`Error`
-|Container exited with a non-zero code
-|`oc logs --previous` → read exit reason
+| `oc logs -l app=<name> -n <ns>`
+| View logs by label selector
 
-|`Terminating`
-|Pod is being deleted (may be stuck if finalizer blocks)
-|`oc describe pod` → check for finalizers blocking deletion
+| `oc debug deployment/<name> -n <ns>`
+| Start a debug pod based on a Deployment
 
-|`ContainerCreating`
-|Pod is starting (usually temporary; investigate after 60s)
-|`oc describe pod` → check Events for volume or image pull issues
+| `oc rsh deployment/<name> -n <ns>`
+| Open a remote shell in a running pod
 
-|`Running` + high restarts
-|Liveness probe failing and killing the container
-|`oc describe pod` → Events show `Unhealthy` and `Killing`
+| `oc exec <pod> -n <ns> -- <command>`
+| Execute a command in a running container
+
+| `oc delete pod <name> -n <ns>`
+| Delete a pod (triggers recreation by Deployment)
 |===
 
-== Failure pattern reference
+== Events
 
-[cols="1,1,2",options="header"]
+[cols="2,3", options="header"]
 |===
-|Symptom |Root cause |Fix
+| Command | Description
 
-|`Pod has unbound immediate PersistentVolumeClaims`
-|PVC missing or `Pending`
-|`oc get pvc` → create PVC or fix StorageClass
+| `oc get events -n <ns>`
+| List events in a namespace
 
-|`configmap "<name>" not found`
-|Referenced ConfigMap does not exist
-|`oc create configmap <name> --from-literal=...`
+| `oc get events -n <ns> --sort-by='.lastTimestamp'`
+| List events sorted by time
 
-|`secret "<name>" not found`
-|Referenced Secret does not exist
-|`oc create secret generic <name> --from-literal=...`
+| `oc get events -n <ns> --field-selector type=Warning`
+| Show only warning events
 
-|`couldn't find key <X> in ConfigMap`
-|Key name mismatch between ConfigMap and deployment
-|`oc get configmap -o yaml` → fix key in `oc edit deployment`
-
-|`Error: EACCES: permission denied`
-|Container cannot write to mounted volume
-|Add `securityContext.fsGroup: <gid>` to deployment
-
-|`is forbidden: User "system:serviceaccount:..."` in logs
-|ServiceAccount missing RBAC RoleBinding
-|`oc create rolebinding ... --clusterrole=view --serviceaccount=...`
-
-|`unable to validate against any security context constraint`
-|`runAsUser: 0` blocked by `restricted` SCC
-|Remove `securityContext.runAsUser` from deployment
-
-|`unexpected status code 401 Unauthorized` (image pull)
-|Registry pull secret missing
-|`oc create secret docker-registry` + `oc secrets link default <secret> --for=pull`
-
-|`manifest unknown` / `404` (image pull)
-|Image tag does not exist in registry
-|`oc set image deployment/<name> <container>=<image>:<correct-tag>`
-
-|`oc get endpoints` shows `<none>`
-|Service selector does not match pod labels
-|`oc patch service <name> -p '{"spec":{"selector":{"app":"<correct>"}}}'`
-
-|Route returns `503`, `(svc not found)` in describe
-|Route targets wrong service name
-|`oc patch route <name> -p '{"spec":{"to":{"name":"<correct-svc>"}}}'`
-
-|`getaddrinfo ENOTFOUND <service>` in logs
-|Short name used for cross-namespace service
-|Set env var to FQDN: `<service>.<namespace>.svc.cluster.local`
-
-|Connection timeout to ClusterIP
-|NetworkPolicy blocking traffic
-|`oc get networkpolicy` → create allow policy
-
-|`0/N nodes are available: N Insufficient cpu/memory`
-|Resource requests too large for any node
-|`oc set resources deployment/<name> --requests=cpu=...,memory=...`
-
-|Exit code `137`, `Reason: OOMKilled`
-|Memory limit too low
-|`oc set resources deployment/<name> --limits=memory=<higher>`
-
-|`exceeded quota: <name>` in ReplicaSet events
-|Namespace ResourceQuota cap reached
-|`oc describe resourcequota` → reduce per-pod requests to fit
-
-|`Liveness probe failed` events, pod keeps restarting
-|Probe path or port does not match application
-|`oc exec -- curl localhost:<port>/<path>` → fix probe in deployment
+| `oc describe pod <name> -n <ns>`
+| Show events specific to a pod
 |===
 
-== Command quick reference
+== ConfigMaps & Secrets
 
-=== Inspection commands
+[cols="2,3", options="header"]
+|===
+| Command | Description
 
-[source,bash]
-----
-# List all pods with status
-oc get pods -n <namespace>
+| `oc get configmap -n <ns>`
+| List ConfigMaps
 
-# Show pod labels
-oc get pods --show-labels -n <namespace>
+| `oc describe configmap <name> -n <ns>`
+| Show ConfigMap details and data
 
-# Full pod detail including events
-oc describe pod <pod-name> -n <namespace>
+| `oc create configmap <name> --from-literal=key=value -n <ns>`
+| Create a ConfigMap from literal values
 
-# Pod logs (current and previous crash)
-oc logs <pod-name> -n <namespace>
-oc logs <pod-name> --previous -n <namespace>
+| `oc get secret -n <ns>`
+| List Secrets
 
-# Namespace events sorted by time
-oc get events --sort-by='.lastTimestamp' -n <namespace>
+| `oc describe secret <name> -n <ns>`
+| Show Secret metadata (not values)
 
-# Describe a ReplicaSet (when no pods exist for a deployment)
-oc describe replicaset -l app=<name> -n <namespace>
-----
+| `oc create secret generic <name> --from-literal=key=value -n <ns>`
+| Create a generic Secret
 
-=== Configuration commands
+| `oc create secret docker-registry <name> --docker-server=<url> --docker-username=<user> --docker-password=<pass> -n <ns>`
+| Create an image pull Secret
 
-[source,bash]
-----
-# List env vars on a deployment
-oc set env deployment/<name> --list -n <namespace>
+| `oc set env deployment/<name> KEY=VALUE -n <ns>`
+| Set environment variables on a Deployment
+|===
 
-# Set an env var
-oc set env deployment/<name> KEY=value -n <namespace>
+== Storage (PVC / PV)
 
-# Create a ConfigMap
-oc create configmap <name> --from-literal=KEY=value -n <namespace>
+[cols="2,3", options="header"]
+|===
+| Command | Description
 
-# Create a generic Secret
-oc create secret generic <name> --from-literal=KEY=value -n <namespace>
+| `oc get pvc -n <ns>`
+| List PersistentVolumeClaims
 
-# Create an image pull Secret
-oc create secret docker-registry <name> \
-  --docker-server=<registry> \
-  --docker-username=<user> \
-  --docker-password=<pass> -n <namespace>
+| `oc describe pvc <name> -n <ns>`
+| Show PVC details and events
 
-# Link pull secret to a ServiceAccount
-oc secrets link <serviceaccount> <secret> --for=pull -n <namespace>
-----
+| `oc get pv`
+| List PersistentVolumes (cluster-wide)
 
-=== Fix commands
+| `oc get storageclass`
+| List available StorageClasses
 
-[source,bash]
-----
-# Update resource requests and limits
-oc set resources deployment/<name> \
-  --requests=cpu=<m>,memory=<Mi> \
-  --limits=cpu=<m>,memory=<Mi> -n <namespace>
+| `oc delete pvc <name> -n <ns>`
+| Delete a PVC
+|===
 
-# Update a container image
-oc set image deployment/<name> <container>=<image>:<tag> -n <namespace>
+== Networking
 
-# Patch a service selector
-oc patch service <name> -p '{"spec":{"selector":{"app":"<value>"}}}' -n <namespace>
+[cols="2,3", options="header"]
+|===
+| Command | Description
 
-# Patch a route target service
-oc patch route <name> -p '{"spec":{"to":{"name":"<service>"}}}' -n <namespace>
+| `oc get svc -n <ns>`
+| List Services
 
-# Grant a ServiceAccount view access
-oc create rolebinding <name> \
-  --clusterrole=view \
-  --serviceaccount=<namespace>:<sa> -n <namespace>
+| `oc describe svc <name> -n <ns>`
+| Show Service details including selector and ports
 
-# Restart a deployment rolling update
-oc rollout restart deployment/<name> -n <namespace>
+| `oc get endpoints <name> -n <ns>`
+| Check Service endpoints (should show pod IPs)
 
-# Scale a deployment
-oc scale deployment/<name> --replicas=<n> -n <namespace>
-----
+| `oc get route -n <ns>`
+| List Routes
 
-=== Storage commands
+| `oc describe route <name> -n <ns>`
+| Show Route details including target port
 
-[source,bash]
-----
-# List PVCs and their status
-oc get pvc -n <namespace>
+| `oc get networkpolicy -n <ns>`
+| List NetworkPolicies
 
-# Show PVC detail including events
-oc describe pvc <name> -n <namespace>
+| `oc describe networkpolicy <name> -n <ns>`
+| Show NetworkPolicy rules
 
-# Show available StorageClasses
-oc get storageclass
+| `oc patch svc <name> -n <ns> --type=json -p='[...]'`
+| Patch a Service (e.g., fix selector)
 
-# Inspect file ownership inside a running container
-oc exec <pod-name> -- ls -la <mountpath>
-----
+| `oc patch route <name> -n <ns> --type=json -p='[...]'`
+| Patch a Route (e.g., fix targetPort)
+|===
 
-=== Security commands
+== RBAC
 
-[source,bash]
-----
-# Check if a ServiceAccount has a permission
-oc auth can-i <verb> <resource> \
-  --as=system:serviceaccount:<namespace>:<sa> -n <namespace>
+[cols="2,3", options="header"]
+|===
+| Command | Description
 
-# List available SCCs
-oc get scc
+| `oc auth can-i <verb> <resource> -n <ns>`
+| Check if you can perform an action
 
-# Show current namespace UID range
-oc describe namespace <namespace> | grep uid-range
+| `oc auth can-i <verb> <resource> --as=system:serviceaccount:<ns>:<sa> -n <ns>`
+| Check if a ServiceAccount can perform an action
 
-# List RoleBindings in namespace
-oc get rolebinding -n <namespace>
-----
+| `oc get rolebinding -n <ns>`
+| List RoleBindings in a namespace
 
-=== Networking commands
+| `oc get clusterrolebinding`
+| List ClusterRoleBindings
 
-[source,bash]
-----
-# Check service endpoints (shows which pods are selected)
-oc get endpoints -n <namespace>
+| `oc create role <name> --verb=<verbs> --resource=<resources> -n <ns>`
+| Create a Role
 
-# DNS resolution from inside a pod
-oc exec -l app=<name> -- nslookup <hostname>
+| `oc create rolebinding <name> --role=<role> --serviceaccount=<ns>:<sa> -n <ns>`
+| Create a RoleBinding
 
-# Test HTTP connectivity from inside a pod
-oc exec -l app=<name> -- curl -s -o /dev/null -w "%{http_code}\n" http://<host>:<port>/<path>
+| `oc adm policy add-scc-to-user <scc> -z <sa> -n <ns>`
+| Grant an SCC to a ServiceAccount
 
-# List NetworkPolicies
-oc get networkpolicy -n <namespace>
+| `oc get scc`
+| List Security Context Constraints
+|===
 
-# Show NetworkPolicy detail
-oc describe networkpolicy <name> -n <namespace>
-----
+== Resources & Scheduling
 
-=== Resource commands
+[cols="2,3", options="header"]
+|===
+| Command | Description
 
-[source,bash]
-----
-# Show node resource allocation
-oc describe nodes | grep -A 6 "Allocated resources"
+| `oc adm top nodes`
+| Show node resource usage
 
-# Show namespace quota usage vs limits
-oc describe resourcequota -n <namespace>
+| `oc adm top pods -n <ns>`
+| Show pod resource usage
 
-# Show live pod CPU and memory usage
-oc top pods -n <namespace>
+| `oc get resourcequota -n <ns>`
+| List ResourceQuotas
 
-# Show live node CPU and memory usage
-oc top nodes
-----
+| `oc describe resourcequota <name> -n <ns>`
+| Show quota usage and limits
+
+| `oc set resources deployment/<name> --requests=cpu=100m,memory=128Mi -n <ns>`
+| Set resource requests
+
+| `oc set resources deployment/<name> --limits=cpu=200m,memory=256Mi -n <ns>`
+| Set resource limits
+
+| `oc scale deployment/<name> --replicas=<n> -n <ns>`
+| Scale a Deployment
+|===
+
+== Deployments & Rollouts
+
+[cols="2,3", options="header"]
+|===
+| Command | Description
+
+| `oc get deployment -n <ns>`
+| List Deployments
+
+| `oc describe deployment <name> -n <ns>`
+| Show Deployment details and events
+
+| `oc rollout status deployment/<name> -n <ns>`
+| Watch rollout progress
+
+| `oc rollout restart deployment/<name> -n <ns>`
+| Trigger a new rollout
+
+| `oc set image deployment/<name> <container>=<image> -n <ns>`
+| Update the container image
+
+| `oc edit deployment <name> -n <ns>`
+| Edit a Deployment in your default editor
+|===
+
+== Useful Flags
+
+[cols="2,3", options="header"]
+|===
+| Flag | Description
+
+| `-o yaml`
+| Output in YAML format
+
+| `-o json`
+| Output in JSON format
+
+| `-o jsonpath='{.spec.field}'`
+| Extract specific fields
+
+| `-o wide`
+| Show additional columns
+
+| `--show-labels`
+| Show resource labels
+
+| `-l app=<name>`
+| Filter by label selector
+
+| `--all-namespaces` or `-A`
+| Search across all namespaces
+
+| `-w` or `--watch`
+| Watch for changes in real time
+|===

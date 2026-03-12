@@ -1,12 +1,7 @@
-To open the web terminal in the OpenShift web console:
+.Open the Web Terminal
+[%collapsible]
+====
+Click the *>_* icon in the OpenShift web console top navigation bar to open the Web Terminal.
 
-. In the web console header, click the *>_* (terminal) icon to the right of the search bar.
-+
-// TODO: Add screenshot of web console header with terminal icon highlighted
-image::partials-web-terminal-icon.png[OpenShift web console header with the terminal icon highlighted in the top navigation bar,link=self,window=blank,width=700,title="Opening the Web Terminal"]
-
-. A terminal panel appears at the bottom of the browser window.
-
-. The terminal is pre-authenticated to the cluster with your user credentials.
-
-NOTE: If the terminal takes more than 30 seconds to appear, refresh the page and try again.
+The terminal opens at the bottom of the screen, pre-authenticated as your user.
+====

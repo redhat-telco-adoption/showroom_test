@@ -1,0 +1,131 @@
+= Lab 1.3: Invalid Environment Variables
+include::_attributes.adoc[]
+
+[.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Configuration & Resources
+
+== Overview
+
+The application `lab-1-3-app` is crashing immediately after startup. The container logs reveal that required environment variables are missing. Your mission is to examine the logs, determine what environment variables the application needs, and add them to the Deployment.
+
+== Explore the Problem
+
+include::partial$open-web-terminal.adoc[]
+
+Check pod status in your namespace:
+
+include::partial$check-pod-status.adoc[]
+
+You should see something like:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS             RESTARTS      AGE
+lab-1-3-app-7f9a8b6c5-k4j2h   0/1     CrashLoopBackOff   3             2m
+----
+
+Check the container logs:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc logs -l app=lab-1-3-app -n {user}-lab --previous
+----
+
+[.console-output]
+[source]
+----
+ERROR: DATABASE_URL is not set. Exiting.
+----
+
+== Diagnose
+
+[tabs]
+====
+Web Console::
++
+--
+. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Click on the `lab-1-3-app` pod
+. Click the *Logs* tab to see the error message
+. Navigate to *Workloads -> Deployments* and click `lab-1-3-app`
+. Click the *YAML* tab and look at the `env` section under `containers`
+. Notice that required environment variables are missing
+--
+
+Web Terminal (`oc`)::
++
+--
+Check the logs for the error:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc logs -l app=lab-1-3-app -n {user}-lab --previous
+----
+
+Inspect the current Deployment environment variables:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get deployment lab-1-3-app -n {user}-lab -o jsonpath='{.spec.template.spec.containers[0].env}' | python3 -m json.tool
+----
+--
+====
+
+== Hints
+
+[%collapsible]
+.Hint 1 -- Where to look
+====
+The application startup script checks for environment variables before starting. The logs tell you exactly which variable is missing. Read the error message carefully.
+====
+
+[%collapsible]
+.Hint 2 -- What's missing
+====
+The application requires two environment variables: `DATABASE_URL` and `APP_NAME`. You can set `DATABASE_URL` to any valid connection string (e.g., `postgresql://localhost:5432/mydb`) and `APP_NAME` to any application name.
+====
+
+[%collapsible]
+.Hint 3 -- Almost there
+====
+Use `oc set env` to add the missing environment variables to the Deployment, or edit the Deployment YAML directly to add them under `spec.template.spec.containers[0].env`.
+====
+
+== Fix the Issue
+
+Add the required environment variables to the `lab-1-3-app` Deployment. The application needs `DATABASE_URL` and `APP_NAME` to be set.
+
+[%collapsible]
+.Reveal Solution (Instructor Reference Only)
+====
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc set env deployment/lab-1-3-app \
+  DATABASE_URL=postgresql://localhost:5432/mydb \
+  APP_NAME="Troubleshooting Workshop" \
+  -n {user}-lab
+----
+
+This triggers a new rollout. The pod should start successfully with the environment variables set.
+====
+
+== Verify Your Fix
+
+include::partial$check-pod-status.adoc[]
+
+The pod should now show `Running`:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-1-3-app-8c6d9e5f4-n7m3p   1/1     Running   0          20s
+----
+
+include::partial$verify-route.adoc[]
+
+Open the Route URL -- you should see: *"Welcome to Troubleshooting Workshop"* (or whatever value you set for `APP_NAME`).

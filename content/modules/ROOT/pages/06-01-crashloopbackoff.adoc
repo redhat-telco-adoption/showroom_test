@@ -1,0 +1,128 @@
+= Lab 6.1: CrashLoopBackOff
+include::_attributes.adoc[]
+
+[.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Application Lifecycle
+
+== Overview
+
+The application `lab-6-1-app` is stuck in `CrashLoopBackOff`. The Deployment spec overrides the container's default command with a binary that does not exist. Your mission is to examine the logs, identify the bad command override, and remove it so the container starts with its default entrypoint.
+
+== Explore the Problem
+
+include::partial$open-web-terminal.adoc[]
+
+Check pod status in your namespace:
+
+include::partial$check-pod-status.adoc[]
+
+You should see something like:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS             RESTARTS      AGE
+lab-6-1-app-3n4o5p6q7-r8s9t   0/1     CrashLoopBackOff   5             4m
+----
+
+Check container logs:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc logs -l app=lab-6-1-app -n {user}-lab --previous
+----
+
+[.console-output]
+[source]
+----
+Error: failed to create containerd task: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: exec: "/usr/bin/nonexistent-binary": stat /usr/bin/nonexistent-binary: no such file or directory
+----
+
+== Diagnose
+
+[tabs]
+====
+Web Console::
++
+--
+. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Click the `lab-6-1-app` pod
+. Review the *Logs* tab -- note the "no such file or directory" error
+. Navigate to *Workloads -> Deployments*, click `lab-6-1-app`, and review the YAML
+. Look for a `command` field in the container spec that overrides the default entrypoint
+--
+
+Web Terminal (`oc`)::
++
+--
+Check the Deployment's command override:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get deployment lab-6-1-app -n {user}-lab -o jsonpath='{.spec.template.spec.containers[0].command}'
+----
+
+[.console-output]
+[source,json]
+----
+["/usr/bin/nonexistent-binary"]
+----
+
+The container is trying to run a binary that does not exist in the image.
+--
+====
+
+== Hints
+
+[%collapsible]
+.Hint 1 -- Where to look
+====
+The error message says a binary does not exist. Check the Deployment spec for a `command` override that replaces the container's default entrypoint.
+====
+
+[%collapsible]
+.Hint 2 -- What's wrong
+====
+The Deployment has `command: ["/usr/bin/nonexistent-binary"]` set in the container spec. This overrides the image's default `CMD`/`ENTRYPOINT` and tries to run a binary that does not exist.
+====
+
+[%collapsible]
+.Hint 3 -- Almost there
+====
+Remove the `command` field from the container spec entirely. The container image already has a correct default entrypoint. Use `oc edit deployment` or `oc patch`.
+====
+
+== Fix the Issue
+
+Remove the incorrect command override from the Deployment so the container uses its default entrypoint.
+
+[%collapsible]
+.Reveal Solution (Instructor Reference Only)
+====
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc patch deployment lab-6-1-app -n {user}-lab --type=json \
+  -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/command"}]'
+----
+
+This triggers a new rollout using the image's default entrypoint.
+====
+
+== Verify Your Fix
+
+include::partial$check-pod-status.adoc[]
+
+The pod should now show `Running` with zero restarts:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-6-1-app-8u9v0w1x2-y3z4a   1/1     Running   0          15s
+----
+
+include::partial$verify-route.adoc[]
+
+Open the Route URL -- you should see the default application page loading successfully.

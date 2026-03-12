@@ -1,0 +1,16 @@
+// Showroom runtime attributes — injected by AgnosticD ocp4_workload_showroom at build time.
+// Local development fallbacks (overridden in deployed environments):
+:user: user1
+:password: openshift
+:openshift_console_url: https://console-openshift-console.apps.example.com
+:openshift_cluster_ingress_domain: apps.example.com
+
+// Derived namespace attributes (Antora resolves these from above at build time):
+:lab_namespace: {user}-lab
+:admin_namespace: {user}-admin-lab
+:workshop-namespace: {user}-lab
+:workshop-admin-namespace: {user}-admin-lab
+
+// Container image references:
+:image-nginx: registry.access.redhat.com/ubi9/nginx-124:latest
+:image-httpd: registry.access.redhat.com/ubi8/httpd-24:latest

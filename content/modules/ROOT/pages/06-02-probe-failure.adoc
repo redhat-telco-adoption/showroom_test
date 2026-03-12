@@ -1,0 +1,168 @@
+= Lab 6.2: Probe Failure
+include::_attributes.adoc[]
+
+[.label.label-yellow]#Intermediate# | *Persona:* Developer | *Category:* Application Lifecycle
+
+== Overview
+
+The application `lab-6-2-app` starts but never becomes Ready (shows `0/1`). The container is running but Kubernetes keeps restarting it because the readiness and liveness probes are misconfigured -- they check the wrong path and wrong port. Your mission is to fix the probe configuration.
+
+== Explore the Problem
+
+include::partial$open-web-terminal.adoc[]
+
+Check pod status in your namespace:
+
+include::partial$check-pod-status.adoc[]
+
+You should see something like:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS     AGE
+lab-6-2-app-9b0c1d2e3-f4g5h   0/1     Running   3            3m
+----
+
+Notice the pod is `Running` but `0/1` Ready, and has multiple restarts.
+
+== Diagnose
+
+[tabs]
+====
+Web Console::
++
+--
+. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Click the `lab-6-2-app` pod
+. Review the *Events* tab -- look for probe failure messages:
+  * `Readiness probe failed: HTTP probe failed with statuscode: 404`
+  * `Liveness probe failed: HTTP probe failed with statuscode: 404`
+. Navigate to *Workloads -> Deployments*, click `lab-6-2-app`, and review the YAML
+. Check the `readinessProbe` and `livenessProbe` configuration
+--
+
+Web Terminal (`oc`)::
++
+--
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc describe pod -l app=lab-6-2-app -n {user}-lab
+----
+
+Look for probe failures in Events:
+
+[.console-output]
+[source]
+----
+Warning  Unhealthy  ...  Readiness probe failed: HTTP probe failed with statuscode: 404
+Warning  Unhealthy  ...  Liveness probe failed: Get "http://10.128.x.x:9090/healthz": dial tcp 10.128.x.x:9090: connect: connection refused
+----
+
+Check the probe configuration:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get deployment lab-6-2-app -n {user}-lab -o yaml | grep -A 8 'Probe'
+----
+
+[.console-output]
+[source,yaml]
+----
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 9090
+  initialDelaySeconds: 1
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 9090
+  initialDelaySeconds: 1
+----
+
+The probes target path `/healthz` on port `9090`, but nginx serves on port `8080` and the path `/healthz` returns 404.
+--
+====
+
+== Hints
+
+[%collapsible]
+.Hint 1 -- Where to look
+====
+The probes check `/healthz` on port `9090`. The nginx container listens on port `8080` and does not have a `/healthz` endpoint. Both the path and port are wrong.
+====
+
+[%collapsible]
+.Hint 2 -- What to change
+====
+The nginx container serves its default page at path `/` on port `8080`. Update both the readiness and liveness probes to use `path: /` and `port: 8080`. Also increase `initialDelaySeconds` to give the container time to start.
+====
+
+[%collapsible]
+.Hint 3 -- Almost there
+====
+Edit the Deployment and change both probes: set `path` to `/`, `port` to `8080`, and `initialDelaySeconds` to `5`. Use `oc edit deployment` to make all changes at once.
+====
+
+== Fix the Issue
+
+Update the readiness and liveness probes to use the correct path, port, and timing values.
+
+[%collapsible]
+.Reveal Solution (Instructor Reference Only)
+====
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc edit deployment lab-6-2-app -n {user}-lab
+----
+
+Update both probes:
+
+[source,yaml]
+----
+readinessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+livenessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  initialDelaySeconds: 15
+  periodSeconds: 20
+----
+
+Or use patch:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc patch deployment lab-6-2-app -n {user}-lab --type=json -p='[
+  {"op": "replace", "path": "/spec/template/spec/containers/0/readinessProbe", "value": {"httpGet": {"path": "/", "port": 8080}, "initialDelaySeconds": 5, "periodSeconds": 10}},
+  {"op": "replace", "path": "/spec/template/spec/containers/0/livenessProbe", "value": {"httpGet": {"path": "/", "port": 8080}, "initialDelaySeconds": 15, "periodSeconds": 20}}
+]'
+----
+====
+
+== Verify Your Fix
+
+include::partial$check-pod-status.adoc[]
+
+The pod should now show `1/1 Running` with zero restarts:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-6-2-app-1i2j3k4l5-m6n7o   1/1     Running   0          30s
+----
+
+include::partial$verify-route.adoc[]
+
+Open the Route URL -- you should see the application page loading successfully.

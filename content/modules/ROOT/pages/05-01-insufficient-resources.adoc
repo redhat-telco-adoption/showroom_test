@@ -1,0 +1,143 @@
+= Lab 5.1: Insufficient Resources
+include::_attributes.adoc[]
+
+[.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Resource Limits & Scheduling
+
+== Overview
+
+The application `lab-5-1-app` is stuck in `Pending` state. The pod cannot be scheduled because it requests far more CPU and memory than any node in the cluster can provide. Your mission is to reduce the resource requests to reasonable values so the pod can be scheduled.
+
+== Explore the Problem
+
+include::partial$open-web-terminal.adoc[]
+
+Check pod status in your namespace:
+
+include::partial$check-pod-status.adoc[]
+
+You should see something like:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-5-1-app-5e6f7g8h9-i0j1k   0/1     Pending   0          3m
+----
+
+Check events for more details:
+
+include::partial$check-events.adoc[]
+
+Look for scheduling failure messages:
+
+[.console-output]
+[source]
+----
+Warning  FailedScheduling  ...  0/6 nodes are available: 6 Insufficient cpu, 6 Insufficient memory.
+----
+
+== Diagnose
+
+[tabs]
+====
+Web Console::
++
+--
+. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Click the `lab-5-1-app` pod -- notice it is `Pending`
+. Review the *Events* tab for the scheduling failure
+. Navigate to *Workloads -> Deployments*, click `lab-5-1-app`, and check the YAML
+. Find the `resources.requests` section -- note the excessive values
+--
+
+Web Terminal (`oc`)::
++
+--
+Check what resources the pod requests:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get deployment lab-5-1-app -n {user}-lab -o jsonpath='{.spec.template.spec.containers[0].resources}' | python3 -m json.tool
+----
+
+[.console-output]
+[source,json]
+----
+{
+    "requests": {
+        "cpu": "8",
+        "memory": "32Gi"
+    },
+    "limits": {
+        "cpu": "8",
+        "memory": "32Gi"
+    }
+}
+----
+
+Check available node resources:
+
+[.console-input]
+[source,bash]
+----
+oc adm top nodes
+----
+--
+====
+
+== Hints
+
+[%collapsible]
+.Hint 1 -- Where to look
+====
+The pod requests `cpu: "8"` and `memory: "32Gi"`. Check the cluster node capacity with `oc adm top nodes` to see how much is actually available.
+====
+
+[%collapsible]
+.Hint 2 -- What to change
+====
+The nginx application needs very little resources. Reasonable requests would be `cpu: "100m"` and `memory: "128Mi"`. The current values are vastly oversized.
+====
+
+[%collapsible]
+.Hint 3 -- Almost there
+====
+Use `oc set resources` or `oc edit deployment` to update the resource requests and limits to reasonable values.
+====
+
+== Fix the Issue
+
+Reduce the resource requests and limits in the Deployment to values that can be satisfied by the cluster nodes.
+
+[%collapsible]
+.Reveal Solution (Instructor Reference Only)
+====
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc set resources deployment/lab-5-1-app \
+  --requests=cpu=100m,memory=128Mi \
+  --limits=cpu=200m,memory=256Mi \
+  -n {user}-lab
+----
+
+This triggers a new rollout with the reduced resource requirements. The scheduler will find a suitable node.
+====
+
+== Verify Your Fix
+
+include::partial$check-pod-status.adoc[]
+
+The pod should now show `Running`:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-5-1-app-2l3m4n5o6-p7q8r   1/1     Running   0          15s
+----
+
+include::partial$verify-route.adoc[]
+
+Open the Route URL -- you should see the application page loading successfully.

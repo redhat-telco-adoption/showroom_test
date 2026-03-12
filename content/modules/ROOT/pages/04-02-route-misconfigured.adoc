@@ -1,0 +1,157 @@
+= Lab 4.2: Route Misconfigured
+include::_attributes.adoc[]
+
+[.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Networking & Routing
+
+== Overview
+
+The application `lab-4-2-app` is running and the Service has correct endpoints, but the Route still returns a `503 Service Unavailable` error. The Route's `targetPort` does not match the port exposed by the Service. Your mission is to find the port mismatch and correct it.
+
+== Explore the Problem
+
+include::partial$open-web-terminal.adoc[]
+
+Check pod status:
+
+include::partial$check-pod-status.adoc[]
+
+Pods are running:
+
+[.console-output]
+[source,bash]
+----
+NAME                           READY   STATUS    RESTARTS   AGE
+lab-4-2-app-4d5e6f7g8-h9i0j   1/1     Running   0          3m
+----
+
+The Service has endpoints:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get endpoints lab-4-2-svc -n {user}-lab
+----
+
+[.console-output]
+[source,bash]
+----
+NAME          ENDPOINTS          AGE
+lab-4-2-svc   10.128.2.20:8080   3m
+----
+
+But the Route returns 503:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+curl -s -o /dev/null -w "%{http_code}" $(oc get route lab-4-2-route -n {user}-lab -o jsonpath='{.spec.host}') -k
+----
+
+[.console-output]
+[source]
+----
+503
+----
+
+== Diagnose
+
+[tabs]
+====
+Web Console::
++
+--
+. Navigate to *Networking -> Routes* in namespace `{user}-lab`
+. Click `lab-4-2-route` and check the *Target Port* field -- it shows `8443`
+. Navigate to *Networking -> Services*, click `lab-4-2-svc`, and check the port -- it only exposes `8080`
+. The Route targets port `8443` but the Service only has port `8080`
+--
+
+Web Terminal (`oc`)::
++
+--
+Check the Route configuration:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get route lab-4-2-route -n {user}-lab -o yaml | grep targetPort
+----
+
+[.console-output]
+[source,yaml]
+----
+targetPort: 8443
+----
+
+Check the Service ports:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get svc lab-4-2-svc -n {user}-lab -o jsonpath='{.spec.ports[*]}'
+----
+
+[.console-output]
+[source,json]
+----
+{"port":8080,"protocol":"TCP","targetPort":8080}
+----
+
+The Route points to port `8443`, but the Service only exposes `8080`.
+--
+====
+
+== Hints
+
+[%collapsible]
+.Hint 1 -- Where to look
+====
+Compare the Route's `targetPort` with the Service's available ports. The Route must reference a port that the Service actually exposes.
+====
+
+[%collapsible]
+.Hint 2 -- What's wrong
+====
+The Route has `targetPort: 8443` but the Service only exposes port `8080`. The Route cannot forward traffic to a port the Service does not have.
+====
+
+[%collapsible]
+.Hint 3 -- Almost there
+====
+Edit the Route and change `targetPort` from `8443` to `8080`. Use `oc edit route` or `oc patch`.
+====
+
+== Fix the Issue
+
+Update the Route's `targetPort` to match the port exposed by the Service.
+
+[%collapsible]
+.Reveal Solution (Instructor Reference Only)
+====
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc patch route lab-4-2-route -n {user}-lab \
+  --type=json -p='[{"op": "replace", "path": "/spec/port/targetPort", "value": "8080"}]'
+----
+====
+
+== Verify Your Fix
+
+Test the Route:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+curl -s -o /dev/null -w "%{http_code}" $(oc get route lab-4-2-route -n {user}-lab -o jsonpath='{.spec.host}') -k
+----
+
+[.console-output]
+[source]
+----
+200
+----
+
+include::partial$verify-route.adoc[]
+
+Open the Route URL -- you should see the application page loading successfully.

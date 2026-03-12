@@ -1,0 +1,189 @@
+= Lab 4.3: DNS Resolution Failure
+include::_attributes.adoc[]
+
+[.label.label-red]#Advanced# | *Persona:* Platform Engineer | *Category:* Networking & Routing
+
+== Overview
+
+The `lab-4-3-frontend` application displays a page but shows an error: "Cannot connect to backend service." The frontend tries to reach `lab-4-3-backend-svc` but DNS resolution fails due to a NetworkPolicy that blocks egress UDP port 53 (DNS). Your mission is to identify the DNS blocking and fix the NetworkPolicy.
+
+== Explore the Problem
+
+include::partial$open-web-terminal.adoc[]
+
+Check pod status:
+
+include::partial$check-pod-status.adoc[]
+
+Both pods appear to be running:
+
+[.console-output]
+[source,bash]
+----
+NAME                                  READY   STATUS    RESTARTS   AGE
+lab-4-3-backend-3b4c5d6e7-f8g9h      1/1     Running   0          5m
+lab-4-3-frontend-9i0j1k2l3-m4n5o     1/1     Running   0          5m
+----
+
+But the frontend Route shows an error when accessed in the browser: *"Cannot connect to backend service."*
+
+== Diagnose
+
+[tabs]
+====
+Web Console::
++
+--
+. Access the frontend Route URL -- note the "Cannot connect to backend service" error
+. Navigate to *Networking -> NetworkPolicies* in namespace `{user}-lab`
+. Review the NetworkPolicy applied to the frontend -- check the *egress* rules
+. Notice that the egress rules do not allow UDP port 53 (DNS)
+--
+
+Web Terminal (`oc`)::
++
+--
+Exec into the frontend pod and test DNS:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc rsh deployment/lab-4-3-frontend -n {user}-lab
+----
+
+Inside the pod:
+
+[.console-input]
+[source,bash]
+----
+nslookup lab-4-3-backend-svc
+----
+
+[.console-output]
+[source]
+----
+;; connection timed out; no servers could be reached
+----
+
+Type `exit` to leave the pod shell.
+
+Check NetworkPolicies:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get networkpolicy -n {user}-lab
+----
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc describe networkpolicy lab-4-3-frontend-egress -n {user}-lab
+----
+
+Notice the egress rules only allow TCP traffic -- UDP port 53 for DNS is missing.
+--
+====
+
+== Hints
+
+[%collapsible]
+.Hint 1 -- Where to look
+====
+DNS uses UDP port 53. If a NetworkPolicy restricts egress traffic and does not explicitly allow UDP port 53, DNS queries from the pod will time out. Check the egress rules of the NetworkPolicy applied to the frontend pods.
+====
+
+[%collapsible]
+.Hint 2 -- What needs to change
+====
+The NetworkPolicy `lab-4-3-frontend-egress` has an egress rule allowing TCP traffic but not UDP. You need to add an egress rule that allows UDP port 53 to the cluster DNS service.
+====
+
+[%collapsible]
+.Hint 3 -- Almost there
+====
+Edit the NetworkPolicy to add an egress rule allowing UDP on port 53. The rule should allow traffic to the `openshift-dns` namespace or simply allow all egress UDP/53 traffic.
+====
+
+== Fix the Issue
+
+Update the NetworkPolicy to allow DNS egress traffic (UDP port 53) from the frontend pods.
+
+[%collapsible]
+.Reveal Solution (Instructor Reference Only)
+====
+Edit the NetworkPolicy:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc edit networkpolicy lab-4-3-frontend-egress -n {user}-lab
+----
+
+Add the following egress rule to the existing `egress` list:
+
+[source,yaml]
+----
+- ports:
+  - protocol: UDP
+    port: 53
+----
+
+Or patch it:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+cat <<'EOF' | oc apply -n {user}-lab -f -
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: lab-4-3-frontend-egress
+spec:
+  podSelector:
+    matchLabels:
+      app: lab-4-3-frontend
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - protocol: TCP
+      port: 8080
+  - ports:
+    - protocol: UDP
+      port: 53
+EOF
+----
+====
+
+== Verify Your Fix
+
+Exec into the frontend pod and test DNS:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc rsh deployment/lab-4-3-frontend -n {user}-lab
+----
+
+[.console-input]
+[source,bash]
+----
+nslookup lab-4-3-backend-svc
+----
+
+[.console-output]
+[source]
+----
+Server:    172.30.0.10
+Address:   172.30.0.10#53
+
+Name:      lab-4-3-backend-svc.{user}-lab.svc.cluster.local
+Address:   172.30.x.x
+----
+
+Type `exit` to leave the pod shell.
+
+include::partial$verify-route.adoc[]
+
+Open the frontend Route URL -- you should see the frontend successfully displaying data from the backend service.

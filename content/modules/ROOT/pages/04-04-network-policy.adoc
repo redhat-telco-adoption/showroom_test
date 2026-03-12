@@ -1,0 +1,179 @@
+= Lab 4.4: NetworkPolicy Blocking Traffic
+include::_attributes.adoc[]
+
+[.label.label-red]#Advanced# | *Persona:* Platform Engineer | *Category:* Networking & Routing
+
+== Overview
+
+The `lab-4-4-frontend` application cannot reach the `lab-4-4-backend` service. Both pods are running, DNS resolves correctly, but direct HTTP connections from frontend to backend time out. A NetworkPolicy on the backend only allows ingress from pods with the label `role: api-gateway`, but the frontend has `role: frontend`. Your mission is to fix the NetworkPolicy to allow the frontend to reach the backend.
+
+== Explore the Problem
+
+include::partial$open-web-terminal.adoc[]
+
+Check pod status:
+
+include::partial$check-pod-status.adoc[]
+
+Both pods are running:
+
+[.console-output]
+[source,bash]
+----
+NAME                                  READY   STATUS    RESTARTS   AGE
+lab-4-4-backend-2a3b4c5d6-e7f8g      1/1     Running   0          5m
+lab-4-4-frontend-7h8i9j0k1-l2m3n     1/1     Running   0          5m
+----
+
+The frontend Route loads but shows: *"Error: Connection to backend timed out."*
+
+== Diagnose
+
+[tabs]
+====
+Web Console::
++
+--
+. Navigate to *Networking -> NetworkPolicies* in namespace `{user}-lab`
+. Find `lab-4-4-backend-ingress` and review its rules
+. Note that it allows ingress only from pods with label `role: api-gateway`
+. Check the frontend pod labels -- it has `role: frontend`, not `role: api-gateway`
+--
+
+Web Terminal (`oc`)::
++
+--
+Test connectivity from the frontend to the backend:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc rsh deployment/lab-4-4-frontend -n {user}-lab
+----
+
+[.console-input]
+[source,bash]
+----
+curl -s --connect-timeout 5 http://lab-4-4-backend-svc:8080
+----
+
+[.console-output]
+[source]
+----
+curl: (28) Connection timed out after 5000 milliseconds
+----
+
+Type `exit` to leave the pod shell.
+
+Check the NetworkPolicy:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc describe networkpolicy lab-4-4-backend-ingress -n {user}-lab
+----
+
+Check the frontend pod labels:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get pods -l app=lab-4-4-frontend -n {user}-lab --show-labels
+----
+
+The NetworkPolicy allows from `role: api-gateway`, but the frontend has `role: frontend`.
+--
+====
+
+== Hints
+
+[%collapsible]
+.Hint 1 -- Where to look
+====
+NetworkPolicies use label selectors to determine which pods can communicate. Check the ingress rules on the backend's NetworkPolicy and compare them with the frontend pod's labels.
+====
+
+[%collapsible]
+.Hint 2 -- What's wrong
+====
+The backend's NetworkPolicy `lab-4-4-backend-ingress` allows ingress only from pods with `role: api-gateway`. The frontend pods have `role: frontend`. Either update the NetworkPolicy or change the frontend label.
+====
+
+[%collapsible]
+.Hint 3 -- Almost there
+====
+The recommended fix is to update the NetworkPolicy's `podSelector` in the ingress `from` section to match `role: frontend`. This is more correct than relabeling the frontend pods.
+====
+
+== Fix the Issue
+
+Update the backend's NetworkPolicy to allow ingress traffic from the frontend pods. Modify the allowed label selector to match the frontend's actual labels.
+
+[%collapsible]
+.Reveal Solution (Instructor Reference Only)
+====
+Edit the NetworkPolicy:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc edit networkpolicy lab-4-4-backend-ingress -n {user}-lab
+----
+
+Change the ingress `from` selector from:
+
+[source,yaml]
+----
+from:
+- podSelector:
+    matchLabels:
+      role: api-gateway
+----
+
+To:
+
+[source,yaml]
+----
+from:
+- podSelector:
+    matchLabels:
+      role: frontend
+----
+
+Or use patch:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc patch networkpolicy lab-4-4-backend-ingress -n {user}-lab --type=json \
+  -p='[{"op": "replace", "path": "/spec/ingress/0/from/0/podSelector/matchLabels/role", "value": "frontend"}]'
+----
+====
+
+== Verify Your Fix
+
+Test connectivity from the frontend:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc rsh deployment/lab-4-4-frontend -n {user}-lab
+----
+
+[.console-input]
+[source,bash]
+----
+curl -s --connect-timeout 5 http://lab-4-4-backend-svc:8080
+----
+
+[.console-output]
+[source]
+----
+Hello from the backend!
+----
+
+Type `exit` to leave the pod shell.
+
+include::partial$verify-route.adoc[]
+
+Open the frontend Route URL -- you should see: *"Backend says: Hello from the backend!"*

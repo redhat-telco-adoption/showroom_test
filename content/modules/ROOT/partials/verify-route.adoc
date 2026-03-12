@@ -1,21 +1,9 @@
-Verify that the application route is accessible and returning a successful response:
+Verify the application Route:
 
-[source,bash]
+[.console-input]
+[source,bash,subs="attributes+"]
 ----
-curl -s -o /dev/null -w "%{http_code}\n" https://<route-hostname>
-----
-
-Expected output:
-
-----
-200
+oc get route -n {user}-lab
 ----
 
-A `200` response confirms the application is running and reachable. A `503` typically means the service has no healthy pods to route traffic to.
-
-To get the route hostname:
-
-[source,bash]
-----
-oc get route <route-name> -o jsonpath='{.spec.host}'
-----
+Copy the URL from the HOST/PORT column and open it in your browser. You should see the application page.
