@@ -30,7 +30,8 @@ include::partial$open-web-terminal.adoc[]
 +
 [source,bash]
 ----
-{ login_command }
+{login_command}
+{openshift_console_url}
 ----
 +
 Expected output:
