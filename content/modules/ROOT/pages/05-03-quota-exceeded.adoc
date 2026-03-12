@@ -89,7 +89,7 @@ oc describe resourcequota lab-quota -n {user}-lab
 ----
 
 [.console-output]
-[source]
+[source,subs="attributes+"]
 ----
 Name:       lab-quota
 Namespace:  {user}-lab

@@ -173,7 +173,7 @@ nslookup lab-4-3-backend-svc
 ----
 
 [.console-output]
-[source]
+[source,subs="attributes+"]
 ----
 Server:    172.30.0.10
 Address:   172.30.0.10#53

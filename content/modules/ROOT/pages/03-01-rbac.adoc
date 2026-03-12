@@ -39,7 +39,7 @@ oc logs -l job-name=lab-3-1-deployer-job -n {user}-admin-lab
 ----
 
 [.console-output]
-[source]
+[source,subs="attributes+"]
 ----
 Error from server (Forbidden): deployments.apps is forbidden: User "system:serviceaccount:{user}-admin-lab:deploy-bot" cannot create resource "deployments" in API group "apps" in the namespace "{user}-admin-lab"
 ----

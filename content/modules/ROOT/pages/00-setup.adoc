@@ -22,7 +22,7 @@ If you see `{user}` in any command, click *Change* in the credential bar and re-
 
 Open the OpenShift Web Console in your browser:
 
-[source]
+[source,subs="attributes+"]
 ----
 {openshift_console_url}
 ----

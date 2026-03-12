@@ -29,7 +29,7 @@ But the Route returns 503:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-curl -s -o /dev/null -w "%{http_code}" $(oc get route lab-4-1-route -n {user}-lab -o jsonpath='{.spec.host}') -k
+curl -s -o /dev/null -w "%\{http_code}" $(oc get route lab-4-1-route -n {user}-lab -o jsonpath='{.spec.host}') -k
 ----
 
 [.console-output]
