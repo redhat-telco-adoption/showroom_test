@@ -30,7 +30,7 @@ include::partial$open-web-terminal.adoc[]
 +
 [source,bash]
 ----
-oc login -u {bastion_ssh_user_name} -p {bastion_ssh_password} {openshift_api_url}
+{ login_command }
 ----
 +
 Expected output:
