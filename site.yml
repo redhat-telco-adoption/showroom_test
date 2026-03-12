@@ -1,6 +1,6 @@
 ---
 site:
-  title: Showroom Template Demo
+  title: OpenShift Troubleshooting Workshop
   url: https://github.com/rhpds/showroom_template_nookbag
   start_page: modules::index.adoc
 
@@ -22,6 +22,7 @@ antora:
 
 asciidoc:
   attributes:
+    page-toclevels: -1
     experimental: true
     page-pagination: true
     showroom-collection-version: v1.5.6

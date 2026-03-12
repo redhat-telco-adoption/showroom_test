@@ -1,19 +1,45 @@
-* xref:index.adoc[What is Showroom?]
+* xref:index.adoc[Home]
 
-.Content Developer Guide
-* xref:quick-start.adoc[Quick Start]
-* xref:content-repo.adoc[Creating a Content Repository]
-* xref:agnosticv-config.adoc[AgnosticV Configuration]
-* xref:ui-config.adoc[UI Configuration]
-* xref:user-data.adoc[User Data and Variables]
-* xref:attribute-example.adoc[Attribute Injection Example]
-* xref:ocp4-role-reference.adoc[OCP4 Role Reference]
-* xref:vm-role-reference.adoc[VM Role Reference]
+* xref:01-overview.adoc[Workshop overview]
 
-.Showroom Developer Guide
-* xref:architecture.adoc[Architecture]
-* xref:deployer.adoc[Showroom Deployer]
-* xref:images.adoc[Showroom Images]
-* xref:nookbag.adoc[Nookbag UI]
-* xref:ocp-integration.adoc[OCP Integration]
-* xref:contributing.adoc[Contributing]
+* xref:02-details.adoc[Workshop details]
+
+* xref:03-module-01-getting-started.adoc[Module 1: Getting started]
+** xref:03-module-01-getting-started.adoc#exercise-1[Exercise 1: Log in to the cluster]
+** xref:03-module-01-getting-started.adoc#exercise-2[Exercise 2: Explore the web console]
+** xref:03-module-01-getting-started.adoc#exercise-3[Exercise 3: Core diagnostic commands]
+
+* xref:04-module-02-configuration.adoc[Module 2: Configuration errors]
+** xref:04-module-02-configuration.adoc#exercise-1[Exercise 1: Fix the missing ConfigMap]
+** xref:04-module-02-configuration.adoc#exercise-2[Exercise 2: Fix the missing Secret]
+** xref:04-module-02-configuration.adoc#exercise-3[Exercise 3: Fix the invalid env var reference]
+
+* xref:05-module-03-storage.adoc[Module 3: Storage issues]
+** xref:05-module-03-storage.adoc#exercise-1[Exercise 1: Fix the missing PVC]
+** xref:05-module-03-storage.adoc#exercise-2[Exercise 2: Fix the pending PVC]
+** xref:05-module-03-storage.adoc#exercise-3[Exercise 3: Fix the volume permission error]
+
+* xref:06-module-04-security.adoc[Module 4: Security and access]
+** xref:06-module-04-security.adoc#exercise-1[Exercise 1: Fix the RBAC error]
+** xref:06-module-04-security.adoc#exercise-2[Exercise 2: Fix the SCC violation]
+** xref:06-module-04-security.adoc#exercise-3[Exercise 3: Fix the image pull secret]
+
+* xref:07-module-05-networking.adoc[Module 5: Networking problems]
+** xref:07-module-05-networking.adoc#exercise-1[Exercise 1: Fix the selector mismatch]
+** xref:07-module-05-networking.adoc#exercise-2[Exercise 2: Fix the misconfigured Route]
+** xref:07-module-05-networking.adoc#exercise-3[Exercise 3: Fix the DNS failure]
+** xref:07-module-05-networking.adoc#exercise-4[Exercise 4: Fix the NetworkPolicy]
+
+* xref:08-module-06-resources.adoc[Module 6: Resource constraints]
+** xref:08-module-06-resources.adoc#exercise-1[Exercise 1: Fix the unschedulable pod]
+** xref:08-module-06-resources.adoc#exercise-2[Exercise 2: Fix the OOMKilled container]
+** xref:08-module-06-resources.adoc#exercise-3[Exercise 3: Fix the quota exceeded error]
+
+* xref:09-module-07-application.adoc[Module 7: Application failures]
+** xref:09-module-07-application.adoc#exercise-1[Exercise 1: Fix the CrashLoopBackOff]
+** xref:09-module-07-application.adoc#exercise-2[Exercise 2: Fix the probe failure]
+** xref:09-module-07-application.adoc#exercise-3[Exercise 3: Fix the wrong image tag]
+
+* xref:10-conclusion.adoc[Conclusion and next steps]
+
+* xref:99-cheatsheet.adoc[Troubleshooting cheatsheet]

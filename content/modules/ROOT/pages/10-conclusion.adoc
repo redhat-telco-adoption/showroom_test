@@ -1,0 +1,163 @@
+= Conclusion and next steps
+include::partial$_attributes.adoc[]
+
+One last message from Jordan arrives as you finish the final fix:
+
+____
+"That's all of them! Every one of Alex's broken deployments is back up. The business is happy, standup went smoothly, and you've just built up more OpenShift troubleshooting experience in one day than most engineers get in a month. Well done."
+____
+
+You've worked through 20 broken deployments across 7 failure categories, applying a consistent diagnostic approach to each one. The skills you've built today apply directly to production incidents on real OpenShift clusters.
+
+== What you've learned
+
+Throughout this workshop, you gained hands-on experience with every major category of OpenShift application failure:
+
+=== Foundations (Module 1)
+
+* Authenticated to an OpenShift {ocp_version} cluster using the `oc` CLI and verified your session
+* Navigated both the Administrator and Developer perspectives in the OpenShift web console
+* Applied the four-step diagnostic workflow: `oc get pods` → `oc describe` → `oc logs` → `oc get events`
+
+=== Configuration errors (Module 2)
+
+* Identified missing ConfigMap and Secret resources from `Error: configmap/secret not found` pod events
+* Distinguished between a missing resource (`Pending`) and an invalid key reference (`CreateContainerConfigError`)
+* Created ConfigMaps and Secrets with `oc create` and fixed key mismatches with `oc edit` and `oc patch`
+
+=== Storage failures (Module 3)
+
+* Diagnosed missing PVCs and PVCs stuck in `Pending` due to a non-existent StorageClass
+* Used `oc describe pvc` and `oc get storageclass` to trace storage binding failures
+* Fixed volume permission errors by adding `fsGroup` to the pod security context
+
+=== Security and access (Module 4)
+
+* Traced RBAC errors in application logs and verified permissions with `oc auth can-i`
+* Identified SCC violations that silently prevent pod creation by checking `oc describe replicaset`
+* Created image pull secrets and linked them to ServiceAccounts to resolve `ImagePullBackOff`
+
+=== Networking problems (Module 5)
+
+* Used `oc get endpoints` to find service selector mismatches and corrected them with `oc patch`
+* Fixed a misconfigured Route pointing to a non-existent service name
+* Resolved cross-namespace DNS failures by switching to the FQDN `<service>.<namespace>.svc.cluster.local`
+* Diagnosed NetworkPolicy traffic blocks using `oc describe networkpolicy` and created an allow rule
+
+=== Resource constraints (Module 6)
+
+* Diagnosed scheduler failures caused by oversize resource requests and right-sized them with `oc set resources`
+* Identified OOMKilled containers by their exit code `137` and increased memory limits
+* Read ResourceQuota usage against hard limits and reduced per-pod requests to allow scaling
+
+=== Application failures (Module 7)
+
+* Used `oc logs --previous` to find the crash reason in a `CrashLoopBackOff` and fixed it with `oc set env`
+* Traced liveness probe failures from `Unhealthy` and `Killing` events and corrected the probe path
+* Distinguished between a `401 Unauthorized` (missing credentials) and a `404 manifest unknown` (wrong tag) in `ImagePullBackOff`, and fixed the latter with `oc set image`
+
+== The master diagnostic workflow
+
+Every failure in this workshop was resolved using a variation of the same four-step approach:
+
+. *Observe*: `oc get pods` to identify which pods are not `Running` and check restart counts.
+
+. *Investigate the pod*: `oc describe pod <name>` to read the Events section, container state, and conditions. This single command resolves the majority of failures.
+
+. *Read the logs*: `oc logs <name>` (and `oc logs <name> --previous` for crashed containers) to see what the application reported before it failed.
+
+. *Check the namespace timeline*: `oc get events --sort-by='.lastTimestamp'` to see the sequence of events across all resources in the namespace.
+
+When no pods exist for a deployment, substitute step 2 with `oc describe replicaset -l app=<name>` to find admission failures.
+
+== Key takeaways
+
+The most important patterns to carry forward:
+
+. *Pod state is a category, not a cause*: `Pending` narrows the problem to scheduling or missing resources. `CrashLoopBackOff` means the container starts but the application exits. `ImagePullBackOff` means the image cannot be pulled. The Events section reveals the actual cause.
+
+. *The Events section is almost always the fastest path*: Every module in this workshop could be diagnosed by reading the Events section of `oc describe pod` or `oc describe replicaset`. Scroll to the bottom of describe output first.
+
+. *Timeout versus refused*: A connection timeout to a ClusterIP service means a NetworkPolicy is dropping the packet. A connection refused means the packet arrived but was rejected. These require different fixes.
+
+. *OOMKilled exit code 137, ImagePullBackOff 401 vs 404*: Specific exit codes and HTTP status codes in error messages tell you exactly which fix to apply without guessing.
+
+. *Right-size requests, not limits*: Resource requests determine scheduling. Limits determine kill thresholds. Setting requests too high starves the scheduler. Setting limits too low causes OOMKilled loops.
+
+. *Non-root by default*: OpenShift's `restricted` SCC enforces non-root execution. Remove `runAsUser: 0` from any deployment copied from a Docker or VM environment. For volume permissions, use `fsGroup` instead of running as root.
+
+== Next steps
+
+=== Continue learning
+
+* link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.17/[Red Hat OpenShift {ocp_version} Documentation^] - The authoritative reference for all topics covered in this workshop
+* link:https://developers.redhat.com/learn/openshift/[Red Hat Developer - OpenShift Learning Path^] - Guided learning paths for developers new to OpenShift
+* link:https://learn.openshift.com/[OpenShift Interactive Learning Portal^] - Browser-based OpenShift environments for hands-on practice
+
+=== Deepen specific skills
+
+* link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.17/html/authentication_and_authorization/[Authentication and Authorization^] - RBAC deep-dive, SCCs, and OAuth configuration
+* link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.17/html/networking/[OpenShift Networking^] - Ingress, NetworkPolicy, and cluster network operators
+* link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.17/html/storage/[Storage^] - Storage classes, CSI drivers, and StatefulSet patterns
+* link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.17/html/nodes/[Nodes^] - Resource management, scheduling, taints, and tolerations
+
+=== Get certified
+
+Validate the skills you built today with Red Hat certifications:
+
+* link:https://www.redhat.com/en/services/training/ex280-red-hat-certified-openshift-administrator-exam[EX280 - Red Hat Certified OpenShift Administrator^] - Covers cluster administration, RBAC, networking, and storage
+* link:https://www.redhat.com/en/services/training/ex288-red-hat-certified-specialist-in-openshift-application-development-exam[EX288 - Red Hat Certified Specialist in OpenShift Application Development^] - Covers application deployment, configuration, and troubleshooting
+
+=== Practice projects
+
+Put your new skills to work on your own cluster or Red Hat Developer Sandbox:
+
+. *Build a failure library*: Deliberately break a deployment in each category covered in this workshop and practice diagnosing it from scratch without looking at the module steps.
+
+. *Write a runbook*: Document your team's common OpenShift failure patterns and fixes using the diagnostic patterns from this workshop as a template.
+
+. *Instrument your apps*: Add proper liveness and readiness probes, resource requests, and limits to an application you own. Use `oc describe` and `oc top pods` to validate the settings.
+
+== References
+
+All topics covered in this workshop are grounded in OpenShift and Kubernetes documentation. No external references were provided during module creation; the content below points to the canonical sources for further reading on each topic.
+
+=== Red Hat OpenShift documentation
+
+* link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.17/html/authentication_and_authorization/[Authentication and Authorization^] - RBAC, SCCs, image pull secrets (Modules 4)
+* link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.17/html/networking/[Networking^] - Services, Routes, NetworkPolicy, DNS (Module 5)
+* link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.17/html/storage/[Storage^] - PVCs, StorageClasses, volume configuration (Module 3)
+* link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.17/html/nodes/[Nodes^] - Resource management, scheduling, LimitRanges, ResourceQuotas (Module 6)
+* link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.17/html/cli_tools/[CLI tools^] - Full `oc` CLI reference (All modules)
+
+=== Kubernetes upstream documentation
+
+* link:https://kubernetes.io/docs/concepts/configuration/configmap/[ConfigMaps^] - ConfigMap design and usage patterns (Module 2)
+* link:https://kubernetes.io/docs/concepts/configuration/secret/[Secrets^] - Secret types and consumption patterns (Modules 2, 4)
+* link:https://kubernetes.io/docs/concepts/storage/persistent-volumes/[Persistent Volumes^] - PV/PVC lifecycle and binding modes (Module 3)
+* link:https://kubernetes.io/docs/concepts/network/network-policies/[Network Policies^] - Policy specification and behavior (Module 5)
+* link:https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/[Liveness, Readiness, and Startup Probes^] - Probe types, configuration, and best practices (Module 7)
+* link:https://kubernetes.io/docs/concepts/policy/resource-quotas/[Resource Quotas^] - Namespace quota types and scopes (Module 6)
+* link:https://kubernetes.io/docs/concepts/security/rbac-good-practices/[RBAC Good Practices^] - Least-privilege RBAC patterns (Module 4)
+
+== Share your feedback
+
+Your feedback makes this workshop better for everyone who takes it after you:
+
+* What scenario did you find most realistic or useful?
+* Which module was hardest to follow, and why?
+* What failure type do you encounter most in your own work that we did not cover?
+
+Open an issue in the workshop repository to share your feedback, report errors, or suggest new failure scenarios.
+
+== Thank you
+
+Thank you for completing the OpenShift Troubleshooting Workshop. You now have a repeatable, systematic approach to diagnosing and resolving the most common OpenShift application failures, grounded in hands-on practice with real failure scenarios.
+
+Keep troubleshooting. Keep learning.
+
+---
+
+*Workshop*: OpenShift Troubleshooting Workshop +
+*Completed*: {localdate} +
+*Platform*: Red Hat Showroom

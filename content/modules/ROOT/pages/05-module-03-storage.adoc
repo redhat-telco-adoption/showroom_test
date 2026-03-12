@@ -1,0 +1,523 @@
+= Module 3: Storage issues
+include::partial$_attributes.adoc[]
+:source-highlighter: rouge
+
+Jordan sends another message just as you finish the last configuration fix:
+
+____
+"Great work on the config issues. Next batch: three more apps are down in the `acme-storage` namespace. The platform team thinks it's storage-related. The `database`, `cache`, and `fileprocessor` services are all affected."
+____
+
+Storage failures are a frequent source of confusion because the pod error messages can look identical at first glance, even when the underlying causes are quite different. In this module, you will work through three storage failure scenarios: a missing PersistentVolumeClaim, a PVC that exists but cannot bind, and a pod that mounts storage successfully but cannot write to it.
+
+== Learning objectives
+
+By the end of this module, you will be able to:
+
+* Diagnose pod failures caused by a missing PersistentVolumeClaim
+* Identify a PVC stuck in `Pending` state and determine why it cannot bind
+* Diagnose and fix volume permission errors that cause containers to crash after mounting storage
+* Use `oc get pvc`, `oc describe pvc`, and `oc get storageclass` as part of storage troubleshooting
+
+== Background: OpenShift persistent storage
+
+OpenShift manages storage through three resource types:
+
+* *PersistentVolume (PV)*: A piece of storage provisioned in the cluster, either statically by an administrator or dynamically by a StorageClass.
+* *PersistentVolumeClaim (PVC)*: A request for storage made by a workload. When a PVC is created, OpenShift tries to bind it to a matching PV.
+* *StorageClass*: Defines the type and properties of storage available for dynamic provisioning (for example, `gp3-csi` for AWS General Purpose SSD volumes).
+
+A pod that references a PVC cannot start until the PVC is in `Bound` state. If the PVC does not exist, or exists but is `Pending`, the pod will remain in `Pending` state. If the PVC is bound but the container cannot write to the mounted path, the pod may start and then crash.
+
+[#exercise-1]
+== Exercise 1: Fix the missing PersistentVolumeClaim
+
+=== The scenario
+
+Jordan says the `database` service is down and suspects a storage problem. You switch namespaces and investigate.
+
+=== Investigate
+
+. Switch to the module namespace:
++
+[source,bash]
+----
+oc project acme-storage
+----
+
+. Check pod status across the namespace:
++
+[source,bash]
+----
+oc get pods
+----
++
+Expected output:
++
+----
+NAME                             READY   STATUS    RESTARTS   AGE
+cache-6d8c7f5b4-k2p9n            0/1     Pending   0          10m
+database-5f9b8c7d6-m4r3x         0/1     Pending   0          10m
+fileprocessor-7b8c9d0e1-q5t8w    0/1     CrashLoopBackOff   4   10m
+----
++
+Two pods are `Pending` and one is crashing. Start with `database`.
+
+. Describe the `database` pod:
++
+[source,bash]
+----
+oc describe pod -l app=database
+----
++
+Look at the *Events* section:
++
+----
+Events:
+  Type     Reason            Age                  From               Message
+  ----     ------            ----                 ----               -------
+  Warning  FailedScheduling  10m (x5 over 10m)    default-scheduler  0/3 nodes are available: pod has unbound immediate PersistentVolumeClaims.
+----
++
+The pod cannot be scheduled because it references a PVC that is not bound. Now check whether the PVC exists at all.
+
+. List PVCs in the namespace:
++
+[source,bash]
+----
+oc get pvc
+----
++
+Expected output:
++
+----
+NAME         STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+cache-data   Pending                                      fast-ssd       10m
+----
++
+The `cache-data` PVC exists but is `Pending`. There is no PVC for the `database` deployment at all. Confirm the name the deployment expects:
+
+. Check what PVC name the deployment references:
++
+[source,bash]
+----
+oc get deployment database -o yaml | grep -A 5 claimName
+----
++
+Expected output:
++
+----
+          persistentVolumeClaim:
+            claimName: app-data
+----
++
+The deployment expects a PVC named `app-data`. It does not exist and needs to be created.
+
+=== Fix
+
+. Create the missing PVC:
++
+[source,bash]
+----
+cat <<EOF | oc apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-data
+  namespace: acme-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+EOF
+----
+
+. Verify the PVC was created and bound:
++
+[source,bash]
+----
+oc get pvc app-data
+----
++
+Expected output:
++
+----
+NAME       STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+app-data   Bound    pvc-a1b2c3d4-e5f6-7890-abcd-ef1234567890   1Gi        RWO            gp3-csi        15s
+----
+
+=== Verify
+
+. Watch the pod come up:
++
+[source,bash]
+----
+oc get pods -l app=database -w
+----
++
+Expected output:
++
+----
+NAME                         READY   STATUS              RESTARTS   AGE
+database-5f9b8c7d6-m4r3x     0/1     ContainerCreating   0          11m
+database-5f9b8c7d6-m4r3x     1/1     Running             0          11m
+----
++
+Press `Ctrl+C` to stop watching.
+
+* PVC `app-data` status is `Bound`
+* Pod `database` status is `Running`
+
+[#exercise-2]
+== Exercise 2: Fix the pending PersistentVolumeClaim
+
+=== The scenario
+
+The `cache` pod is also `Pending`, and you already saw that its PVC `cache-data` exists but shows `Pending` status. Jordan confirms: "Alex created the PVC this time, but it's still not working."
+
+A `Pending` PVC means the claim was submitted but OpenShift cannot find a suitable PersistentVolume to bind it to. The most common cause is a StorageClass that does not exist on the cluster.
+
+=== Investigate
+
+. Describe the `cache-data` PVC to find out why it cannot bind:
++
+[source,bash]
+----
+oc describe pvc cache-data
+----
++
+Look at the *Events* section:
++
+----
+Events:
+  Type     Reason                Age                  From                         Message
+  ----     ------                ----                 ----                         -------
+  Warning  ProvisioningFailed    10m (x5 over 10m)    persistentvolume-controller  storageclass.storage.k8s.io "fast-ssd" not found
+----
++
+The PVC specifies StorageClass `fast-ssd`, which does not exist on this cluster.
+
+// TODO: Add screenshot of oc describe pvc output showing the ProvisioningFailed event
+image::module03-pvc-pending-event.png[Terminal output showing oc describe pvc with ProvisioningFailed event and storageclass not found message,link=self,window=blank,width=700,title="oc describe pvc - StorageClass Not Found"]
+
+. Check which StorageClasses are available on the cluster:
++
+[source,bash]
+----
+oc get storageclass
+----
++
+Expected output:
++
+----
+NAME            PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+gp2-csi         ebs.csi.aws.com         Delete          WaitForFirstConsumer   true                   30d
+gp3-csi (default) ebs.csi.aws.com       Delete          WaitForFirstConsumer   true                   30d
+----
++
+The available StorageClasses are `gp2-csi` and `gp3-csi`. The PVC references `fast-ssd`, which does not exist.
+
+=== Fix
+
+PVC specs are immutable once created. You cannot edit the `storageClassName` field on an existing PVC. The fix is to delete the incorrect PVC and create a new one with the correct StorageClass.
+
+NOTE: Deleting a PVC also deletes any data on the underlying volume. In a production environment, confirm with the application owner before deleting a PVC.
+
+. Delete the existing PVC:
++
+[source,bash]
+----
+oc delete pvc cache-data -n acme-storage
+----
+
+. Create a new PVC with the correct StorageClass:
++
+[source,bash]
+----
+cat <<EOF | oc apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cache-data
+  namespace: acme-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3-csi
+  resources:
+    requests:
+      storage: 1Gi
+EOF
+----
+
+. Confirm the new PVC binds successfully:
++
+[source,bash]
+----
+oc get pvc cache-data
+----
++
+Expected output:
++
+----
+NAME         STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+cache-data   Bound    pvc-b2c3d4e5-f6a7-8901-bcde-f12345678901   1Gi        RWO            gp3-csi        10s
+----
+
+=== Verify
+
+. Watch the `cache` pod start:
++
+[source,bash]
+----
+oc get pods -l app=cache -w
+----
++
+Expected output:
++
+----
+NAME                      READY   STATUS              RESTARTS   AGE
+cache-6d8c7f5b4-k2p9n     0/1     ContainerCreating   0          12m
+cache-6d8c7f5b4-k2p9n     1/1     Running             0          12m
+----
++
+Press `Ctrl+C` to stop watching.
+
+* PVC `cache-data` status is `Bound` with StorageClass `gp3-csi`
+* Pod `cache` status is `Running`
+
+[#exercise-3]
+== Exercise 3: Fix the volume permission error
+
+=== The scenario
+
+The `fileprocessor` pod is different from the previous two. It is in `CrashLoopBackOff`, which means the pod does start but then crashes repeatedly. The PVC is bound and the volume mounts successfully. The problem is that the application cannot write to the mounted directory.
+
+=== Investigate
+
+. Check the logs of the `fileprocessor` pod:
++
+[source,bash]
+----
+oc logs -l app=fileprocessor
+----
++
+Expected output:
++
+----
+[2026-03-11T09:03:14.221Z] INFO  Starting file processor service...
+[2026-03-11T09:03:14.223Z] INFO  Mounting data directory: /data/output
+[2026-03-11T09:03:14.231Z] ERROR Failed to create output directory
+Error: EACCES: permission denied, mkdir '/data/output'
+    at Object.mkdirSync (node:fs:1361:3)
+    at start (/app/index.js:12:8)
+[2026-03-11T09:03:14.232Z] ERROR Application startup failed. Exiting.
+----
++
+The application cannot create a directory under `/data/output` because of a permission denied error.
+
+. Inspect the mounted volume's ownership inside the container:
++
+[source,bash]
+----
+oc exec -l app=fileprocessor -- ls -la /data
+----
++
+Expected output:
++
+----
+total 4
+drwxr-xr-x. 2 root root   6 Mar 10 14:00 .
+drwxr-xr-x. 1 root root  20 Mar 11 09:03 ..
+----
++
+The `/data` directory is owned by `root` with permissions `755`. The container runs as a non-root user and cannot create files or directories owned by root.
+
+. Check the deployment's security context:
++
+[source,bash]
+----
+oc get deployment fileprocessor -o yaml | grep -A 10 securityContext
+----
++
+Expected output:
++
+----
+      securityContext: {}
+----
++
+No `securityContext` is set on the pod spec. Without `fsGroup`, the mounted volume retains its default root ownership and the non-root container user cannot write to it.
+
+TIP: The `fsGroup` field in a pod's `securityContext` tells OpenShift to change the group ownership of all mounted volumes to the specified GID when the pod starts. Any user in that group can then read and write to the volume.
+
+=== Fix
+
+. Patch the deployment to add an `fsGroup` to the pod security context:
++
+[source,bash]
+----
+oc patch deployment fileprocessor -n acme-storage --type=merge \
+  -p='{"spec":{"template":{"spec":{"securityContext":{"fsGroup":1000}}}}}'
+----
++
+This triggers a rolling update. A new pod is created with the updated security context.
++
+Alternatively, edit the deployment directly:
++
+[source,bash]
+----
+oc edit deployment fileprocessor -n acme-storage
+----
++
+Add the `securityContext` block under `spec.template.spec`:
++
+----
+    spec:
+      securityContext:
+        fsGroup: 1000      # add this block
+      containers:
+      - name: fileprocessor
+        ...
+----
+
+=== Verify
+
+. Watch the new pod start:
++
+[source,bash]
+----
+oc get pods -l app=fileprocessor -w
+----
++
+Expected output:
++
+----
+NAME                              READY   STATUS              RESTARTS   AGE
+fileprocessor-7b8c9d0e1-q5t8w     0/1     CrashLoopBackOff   4          12m
+fileprocessor-9c0d1e2f3-v6w9x     0/1     ContainerCreating  0          5s
+fileprocessor-9c0d1e2f3-v6w9x     1/1     Running            0          8s
+fileprocessor-7b8c9d0e1-q5t8w     0/1     Terminating        4          12m
+----
++
+Press `Ctrl+C` to stop watching.
+
+. Confirm the volume is now writable by checking ownership inside the new pod:
++
+[source,bash]
+----
+oc exec -l app=fileprocessor -- ls -la /data
+----
++
+Expected output:
++
+----
+total 4
+drwxrwsr-x. 2 root 1000   6 Mar 11 09:15 .
+drwxr-xr-x. 1 root root  20 Mar 11 09:15 ..
+----
++
+The `/data` directory is now group-owned by GID `1000` with the `setgid` bit (`s`) set. The container user (which belongs to GID 1000) can now read and write to this directory.
+
+. Confirm all three storage applications are running:
++
+[source,bash]
+----
+oc get pods -n acme-storage
+----
++
+Expected output:
++
+----
+NAME                              READY   STATUS    RESTARTS   AGE
+cache-6d8c7f5b4-k2p9n             1/1     Running   0          5m
+database-5f9b8c7d6-m4r3x          1/1     Running   0          8m
+fileprocessor-9c0d1e2f3-v6w9x     1/1     Running   0          1m
+----
+
+* All three pods show `Running` status with `1/1` READY
+* `/data` directory inside `fileprocessor` pod shows group ownership of GID `1000`
+
+== Troubleshooting
+
+**Issue**: PVC remains in `Pending` state after creation with the correct StorageClass
+
+**Solution**:
+
+. Confirm the StorageClass name is exact: `oc get storageclass`
+. Check the PVC events for more detail: `oc describe pvc <name> -n acme-storage`
+. Verify the cluster has capacity for the requested storage size
+. If using `WaitForFirstConsumer` binding mode, the PVC will remain `Pending` until a pod is scheduled that references it. This is normal behavior.
+
+---
+
+**Issue**: Pod remains `Pending` after the PVC reaches `Bound` state
+
+**Solution**:
+
+. The pod may need a restart after the PVC was created. Check pod events: `oc describe pod -l app=<name>`
+. If the pod was already scheduled, delete it to trigger a new pod: `oc delete pod -l app=<name> -n acme-storage`
+. The deployment controller will create a new pod that picks up the bound PVC.
+
+---
+
+**Issue**: `oc delete pvc` hangs and the PVC stays in `Terminating`
+
+**Solution**:
+
+* A PVC stuck in `Terminating` usually means a pod is still using the volume.
+* Find which pod is using the PVC: `oc get pods -o json | python3 -m json.tool | grep "cache-data" -B 10`
+* Delete or scale down the pod first, then delete the PVC.
+* In rare cases, a finalizer prevents deletion. Remove it with: `oc patch pvc <name> -p '{"metadata":{"finalizers":[]}}' --type=merge`
+
+---
+
+**Issue**: `oc exec -- ls -la /data` shows correct ownership after the patch, but the app still crashes
+
+**Solution**:
+
+* The new pod may not have started yet. Confirm the pod name changed after the patch: `oc get pods -l app=fileprocessor`
+* If the pod started but still crashes, the application may write to a subdirectory that needs to be pre-created. Check the application logs: `oc logs -l app=fileprocessor`
+* Some applications require the mount path itself to have specific permissions. Use `oc exec` to inspect deeper subdirectories.
+
+---
+
+**Issue**: `oc patch` fails with "unable to find strategic merge patch"
+
+**Solution**:
+
+* Use `--type=merge` as shown in the fix above (not `--type=strategic` or `--type=json` for this operation).
+* If the patch fails, use `oc edit deployment fileprocessor -n acme-storage` for an interactive fix.
+
+== Learning outcomes
+
+By completing this module, you now understand:
+
+* How to distinguish between a missing PVC and a `Pending` PVC from pod describe output
+* How to use `oc describe pvc` to identify why a PVC cannot bind (missing StorageClass, no matching PV)
+* How to use `oc get storageclass` to find the correct StorageClass name for your cluster
+* Why PVC specs are immutable and how to recreate a PVC with corrected settings
+* How `fsGroup` in a pod's `securityContext` changes mounted volume ownership to enable non-root container writes
+* How to confirm volume writability using `oc exec` to inspect file ownership inside a running container
+
+== Module summary
+
+You have resolved three storage failures in ACME Corp's `acme-storage` namespace.
+
+**What you accomplished:**
+
+* Diagnosed and fixed a `database` pod blocked by a missing PVC (`app-data` did not exist)
+* Diagnosed and fixed a `cache` pod blocked by a `Pending` PVC referencing a non-existent StorageClass (`fast-ssd`)
+* Diagnosed and fixed a `fileprocessor` pod in `CrashLoopBackOff` due to a volume permission error, resolved by adding `fsGroup: 1000` to the pod security context
+
+**Key takeaways:**
+
+* Both a missing PVC and a `Pending` PVC produce the same pod event: `pod has unbound immediate PersistentVolumeClaims`. Check `oc get pvc` next to distinguish between the two cases.
+* `oc describe pvc` reveals the exact reason a PVC cannot bind. Look at the Events section, not just the Status field.
+* PVC `storageClassName` is immutable. To fix a wrong StorageClass, delete the PVC and create a new one.
+* `CrashLoopBackOff` with a permission denied error in logs almost always points to a missing `fsGroup` in the pod security context. Setting `fsGroup` to match the container's GID grants write access to mounted volumes.
+
+**Next steps:**
+
+xref:06-module-04-security.adoc[Module 4] covers security and access failures. You will investigate pods blocked by RBAC errors, Security Context Constraint violations, and missing image pull credentials.

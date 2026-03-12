@@ -1,0 +1,572 @@
+= Module 6: Resource constraints
+include::partial$_attributes.adoc[]
+:source-highlighter: rouge
+
+Jordan sends another message:
+
+____
+"Two namespaces left. The `acme-resources` namespace has three resource-related issues. The `batch-processor` won't schedule, the `memory-app` keeps crashing, and the `data-pipeline` can't scale up. I suspect Alex set some unrealistic resource values."
+____
+
+Resource constraint failures fall into three distinct categories: pods that cannot be scheduled because no node has enough free capacity, pods that start but are killed because they exceed their memory limit, and pods that cannot be created because a ResourceQuota cap has been reached. Each has a different symptom and a different fix.
+
+== Learning objectives
+
+By the end of this module, you will be able to:
+
+* Diagnose a pod stuck in `Pending` due to insufficient cluster resources and identify which requests are too large
+* Identify an `OOMKilled` container and increase its memory limit to prevent repeated restarts
+* Read a ResourceQuota to understand current usage versus limits, and resize pod requests to fit within the quota
+
+== Background: OpenShift resource management
+
+OpenShift manages compute resources through three mechanisms:
+
+* *Resource requests*: The amount of CPU and memory a container is guaranteed. The scheduler uses requests to decide which node can host the pod. If no node has enough free allocatable resources to satisfy the request, the pod stays `Pending`.
+* *Resource limits*: The maximum CPU and memory a container can consume. If a container exceeds its memory limit, the Linux kernel OOM killer terminates the process. The container exits with code `137` and the pod shows `OOMKilled`.
+* *ResourceQuota*: A namespace-level cap on total resource consumption. If creating a new pod would push the namespace over its quota, the pod creation is rejected. ResourceQuotas are set by cluster administrators.
+
+[#exercise-1]
+== Exercise 1: Fix the unschedulable pod
+
+=== The scenario
+
+The `batch-processor` deployment has been `Pending` since Alex created it. Jordan suspects the resource requests are set too high for the current cluster capacity.
+
+=== Investigate
+
+. Switch to the module namespace:
++
+[source,bash]
+----
+oc project acme-resources
+----
+
+. Check pod status:
++
+[source,bash]
+----
+oc get pods
+----
++
+Expected output:
++
+----
+NAME                              READY   STATUS             RESTARTS   AGE
+batch-processor-7c8d9e0f1-a2b3c   0/1     Pending            0          10m
+data-pipeline-5d6e7f8a9-b4c5d     1/1     Running            0          10m
+memory-app-3b4c5d6e7-e6f7g        0/1     CrashLoopBackOff   8          10m
+----
+
+. Describe the `batch-processor` pod to find out why it cannot be scheduled:
++
+[source,bash]
+----
+oc describe pod -l app=batch-processor
+----
++
+Events section:
++
+----
+Events:
+  Type     Reason            Age                  From               Message
+  ----     ------            ----                 ----               -------
+  Warning  FailedScheduling  10m (x10 over 10m)   default-scheduler  0/3 nodes are available: 3 Insufficient cpu, 3 Insufficient memory.
+----
++
+No node in the cluster has enough free CPU and memory to satisfy the pod's resource requests.
+
+. Check what the deployment is requesting:
++
+[source,bash]
+----
+oc get deployment batch-processor -o yaml | grep -A 8 resources
+----
++
+Expected output:
++
+----
+          resources:
+            limits:
+              cpu: "8"
+              memory: 16Gi
+            requests:
+              cpu: "4"
+              memory: 8Gi
+----
++
+The pod requests 4 CPU cores and 8Gi of memory. Check the actual allocatable capacity of the worker nodes:
+
+. Check how much CPU and memory is already allocated on the nodes:
++
+[source,bash]
+----
+oc describe nodes | grep -A 6 "Allocated resources"
+----
++
+Expected output:
++
+----
+Allocated resources:
+  Resource           Requests      Limits
+  --------           ------        ------
+  cpu                3750m (94%)   7500m (188%)
+  memory             13Gi (87%)    26Gi (174%)
+--
+Allocated resources:
+  Resource           Requests      Limits
+  --------           ------        ------
+  cpu                3800m (95%)   7600m (190%)
+  memory             13Gi (87%)    26Gi (174%)
+----
++
+Both worker nodes are at over 90% CPU allocation. There is nowhere near 4 free CPU cores available on any single node.
+
+=== Fix
+
+Reduce the resource requests and limits to values that reflect what the application actually needs to run:
+
+[source,bash]
+----
+oc set resources deployment/batch-processor \
+  --requests=cpu=500m,memory=512Mi \
+  --limits=cpu=1,memory=1Gi \
+  -n acme-resources
+----
+
+=== Verify
+
+. Watch the pod get scheduled and start:
++
+[source,bash]
+----
+oc get pods -l app=batch-processor -w
+----
++
+Expected output:
++
+----
+NAME                              READY   STATUS              RESTARTS   AGE
+batch-processor-9a0b1c2d3-e4f5g   0/1     ContainerCreating   0          5s
+batch-processor-9a0b1c2d3-e4f5g   1/1     Running             0          12s
+----
++
+Press `Ctrl+C` to stop watching.
+
+. Confirm the updated resource values:
++
+[source,bash]
+----
+oc get deployment batch-processor -o yaml | grep -A 8 resources
+----
++
+Expected output:
++
+----
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+----
+
+* Pod `batch-processor` status is `Running`
+* Resource requests are `500m` CPU and `512Mi` memory
+
+[#exercise-2]
+== Exercise 2: Fix the OOMKilled container
+
+=== The scenario
+
+The `memory-app` pod keeps restarting. Exit code `137` and `OOMKilled` in the container state are the signatures of a pod that is being terminated by the Linux OOM killer because it exceeded its memory limit.
+
+=== Investigate
+
+. Check the pod status and restart count:
++
+[source,bash]
+----
+oc get pods -l app=memory-app
+----
++
+Expected output:
++
+----
+NAME                          READY   STATUS             RESTARTS   AGE
+memory-app-3b4c5d6e7-e6f7g    0/1     CrashLoopBackOff   8          10m
+----
++
+Eight restarts in ten minutes. Describe the pod to confirm the cause:
+
+. Describe the pod and look at the container state:
++
+[source,bash]
+----
+oc describe pod -l app=memory-app
+----
++
+Look at the *Containers* section, specifically *Last State*:
++
+----
+Containers:
+  memory-app:
+    State:          Waiting
+      Reason:       CrashLoopBackOff
+    Last State:     Terminated
+      Reason:       OOMKilled
+      Exit Code:    137
+      Started:      Wed, 11 Mar 2026 09:15:30 +0000
+      Finished:     Wed, 11 Mar 2026 09:15:58 +0000
+    Ready:          False
+    Restart Count:  8
+    Limits:
+      memory:  64Mi
+    Requests:
+      memory:  32Mi
+----
++
+`Reason: OOMKilled` with exit code `137` (128 + SIGKILL signal 9) confirms the container was killed for exceeding its 64Mi memory limit.
+
+// TODO: Add screenshot of oc describe pod output showing OOMKilled reason and exit code 137
+image::module06-oomkilled-describe.png[Terminal showing oc describe pod output with container Last State showing OOMKilled and exit code 137,link=self,window=blank,width=700,title="OOMKilled Container State in oc describe"]
+
+. Check the logs from before the last crash to understand what the application was doing:
++
+[source,bash]
+----
+oc logs -l app=memory-app --previous
+----
++
+Expected output:
++
+----
+[INFO]  Memory App starting...
+[INFO]  Loading dataset into memory...
+[INFO]  Dataset size: 180MB
+[INFO]  Processing records...
+Killed
+----
++
+The application loads a 180MB dataset, which far exceeds the 64Mi memory limit. The container is killed as soon as it crosses the limit.
+
+. Check the current memory limit on the deployment:
++
+[source,bash]
+----
+oc get deployment memory-app -o yaml | grep -A 6 resources
+----
++
+Expected output:
++
+----
+          resources:
+            limits:
+              memory: 64Mi
+            requests:
+              memory: 32Mi
+----
+
+=== Fix
+
+Increase the memory limit to accommodate the application's actual usage. The dataset is 180MB, so set a limit with enough headroom:
+
+[source,bash]
+----
+oc set resources deployment/memory-app \
+  --requests=memory=256Mi \
+  --limits=memory=512Mi \
+  -n acme-resources
+----
+
+=== Verify
+
+. Watch the new pod start and remain stable:
++
+[source,bash]
+----
+oc get pods -l app=memory-app -w
+----
++
+Expected output:
++
+----
+NAME                          READY   STATUS    RESTARTS   AGE
+memory-app-5c6d7e8f9-h8i9j    1/1     Running   0          20s
+----
++
+Wait at least 60 seconds to confirm the pod is not restarting. Press `Ctrl+C` to stop watching.
+
+. Confirm the restart count stays at 0:
++
+[source,bash]
+----
+oc get pods -l app=memory-app
+----
++
+Expected output:
++
+----
+NAME                          READY   STATUS    RESTARTS   AGE
+memory-app-5c6d7e8f9-h8i9j    1/1     Running   0          2m
+----
+
+* Pod `memory-app` status is `Running`
+* `RESTARTS` count is `0` after waiting 60 seconds
+* `oc describe pod` no longer shows `OOMKilled` in Last State
+
+[#exercise-3]
+== Exercise 3: Fix the quota exceeded error
+
+=== The scenario
+
+The `data-pipeline` deployment is running with one replica, but the team needs to scale it to three replicas to handle increased load. When you try to scale it, new pods are not created. A ResourceQuota is capping the namespace's total resource usage.
+
+=== Investigate
+
+. Attempt to scale the deployment to three replicas:
++
+[source,bash]
+----
+oc scale deployment/data-pipeline --replicas=3 -n acme-resources
+----
+
+. Check pod status:
++
+[source,bash]
+----
+oc get pods
+----
++
+Expected output:
++
+----
+NAME                              READY   STATUS    RESTARTS   AGE
+batch-processor-9a0b1c2d3-e4f5g   1/1     Running   0          5m
+data-pipeline-5d6e7f8a9-b4c5d     1/1     Running   0          15m
+memory-app-5c6d7e8f9-h8i9j        1/1     Running   0          3m
+----
++
+Only one `data-pipeline` pod exists despite the scale request. Describe the ReplicaSet to find out why:
+
+. Describe the data-pipeline ReplicaSet:
++
+[source,bash]
+----
+oc describe replicaset -l app=data-pipeline
+----
++
+Events section:
++
+----
+Events:
+  Type     Reason        Age                  From                   Message
+  ----     ------        ----                 ----                   -------
+  Warning  FailedCreate  2m (x10 over 2m)     replicaset-controller  Error creating: pods "data-pipeline-" is forbidden: exceeded quota: acme-quota, requested: requests.cpu=400m, used: requests.cpu=900m, limited: requests.cpu=1
+----
++
+The namespace quota limits total CPU requests to `1` core (1000m). The namespace is already using 900m across the existing pods. Each new `data-pipeline` pod would request another 400m, which would push usage to 1300m, exceeding the 1000m limit.
+
+. Inspect the ResourceQuota to see the full picture:
++
+[source,bash]
+----
+oc describe resourcequota acme-quota -n acme-resources
+----
++
+Expected output:
++
+----
+Name:            acme-quota
+Namespace:       acme-resources
+Resource         Used    Hard
+--------         ----    ----
+limits.cpu       1500m   3
+limits.memory    1536Mi  4Gi
+pods             3       10
+requests.cpu     900m    1
+requests.memory  768Mi   2Gi
+----
++
+The `requests.cpu` is at `900m` against a hard limit of `1` (1000m). Each additional `data-pipeline` pod requests 400m, so only 100m of quota headroom remains. No new pods can be scheduled.
+
+. Check the current per-pod request on the deployment:
++
+[source,bash]
+----
+oc get deployment data-pipeline -o yaml | grep -A 6 resources
+----
++
+Expected output:
++
+----
+          resources:
+            limits:
+              cpu: 800m
+              memory: 512Mi
+            requests:
+              cpu: 400m
+              memory: 256Mi
+----
+
+=== Fix
+
+Reduce the per-pod CPU request so that three replicas fit within the remaining quota. With 100m currently available for new pods and a quota of 1000m total, set the request to 200m per pod. Three pods at 200m each uses 600m, comfortably under the limit:
+
+[source,bash]
+----
+oc set resources deployment/data-pipeline \
+  --requests=cpu=200m,memory=128Mi \
+  --limits=cpu=400m,memory=256Mi \
+  -n acme-resources
+----
+
+The deployment rolls out a new pod at the reduced request size. Now scale to three replicas:
+
+[source,bash]
+----
+oc scale deployment/data-pipeline --replicas=3 -n acme-resources
+----
+
+=== Verify
+
+. Watch all three pods start:
++
+[source,bash]
+----
+oc get pods -l app=data-pipeline -w
+----
++
+Expected output:
++
+----
+NAME                             READY   STATUS    RESTARTS   AGE
+data-pipeline-7e8f9a0b1-c2d3e    1/1     Running   0          30s
+data-pipeline-7e8f9a0b1-f4g5h    1/1     Running   0          28s
+data-pipeline-7e8f9a0b1-i6j7k    1/1     Running   0          25s
+----
++
+Press `Ctrl+C` to stop watching.
+
+. Confirm the quota is now used efficiently but not exceeded:
++
+[source,bash]
+----
+oc describe resourcequota acme-quota -n acme-resources
+----
++
+Expected output (values will vary based on all running pods):
++
+----
+Name:            acme-quota
+Namespace:       acme-resources
+Resource         Used    Hard
+--------         ----    ----
+limits.cpu       2600m   3
+limits.memory    1280Mi  4Gi
+pods             5       10
+requests.cpu     900m    1
+requests.memory  640Mi   2Gi
+----
++
+`requests.cpu` stays at or below `1` (1000m).
+
+* Three `data-pipeline` pods are `Running`
+* `oc describe resourcequota acme-quota` shows `requests.cpu` used is at or below the hard limit of `1`
+
+== Troubleshooting
+
+**Issue**: Pod remains `Pending` after reducing resource requests
+
+**Solution**:
+
+. The patch may not have triggered a new rollout if the pod spec did not change enough. Force a restart:
++
+[source,bash]
+----
+oc rollout restart deployment/batch-processor -n acme-resources
+----
+. Verify the new pod's requested resources: `oc describe pod -l app=batch-processor | grep -A 4 Requests`
+. If still pending, check whether nodes have enough allocatable resources: `oc describe nodes | grep -A 6 "Allocated resources"`
+
+---
+
+**Issue**: Pod is still OOMKilled after increasing the memory limit
+
+**Solution**:
+
+* The new limit may still be too low. Check the application logs for the actual memory usage at the time of the kill: `oc logs -l app=memory-app --previous`
+* Use `oc top pods` to monitor live memory usage if the pod stays up long enough: `oc top pods -n acme-resources`
+* Increase the limit further: `oc set resources deployment/memory-app --limits=memory=1Gi -n acme-resources`
+* If memory usage grows unboundedly, the application may have a memory leak. The fix is a code change, not a limit increase.
+
+---
+
+**Issue**: `oc scale` succeeds but new pods are not created
+
+**Solution**:
+
+. Check the ReplicaSet events: `oc describe replicaset -l app=data-pipeline`
+. Look for `exceeded quota` in events to confirm it is a quota issue, not a scheduling issue
+. If it is a scheduling failure (not quota), check node capacity: `oc describe nodes | grep -A 6 "Allocated resources"`
+
+---
+
+**Issue**: `oc describe resourcequota` shows usage below the hard limit, but pods are still failing to create
+
+**Solution**:
+
+* A namespace may have multiple ResourceQuotas. Check for all of them:
++
+[source,bash]
+----
+oc get resourcequota -n acme-resources
+----
+* A LimitRange may also be applying default limits that inflate the effective request. Check:
++
+[source,bash]
+----
+oc describe limitrange -n acme-resources
+----
+* LimitRanges set default requests and limits on pods that do not specify them, which can cause pods to consume more quota than expected.
+
+---
+
+**Issue**: You do not have permission to change ResourceQuota limits
+
+**Solution**:
+
+* Increasing a ResourceQuota requires cluster-admin or a namespace admin role with quota management permissions.
+* As a regular user, the only option is to reduce per-pod resource requests so more pods fit within the existing quota.
+* To request a quota increase, contact your platform team with justification for the additional resources.
+
+== Learning outcomes
+
+By completing this module, you now understand:
+
+* How `oc describe pod` scheduler events reveal insufficient CPU or memory on cluster nodes, and how to compare pod requests against node allocatable capacity
+* How `OOMKilled` with exit code `137` in a container's Last State indicates a memory limit violation, and how `oc logs --previous` reveals what the application was doing before it was killed
+* How to read `oc describe resourcequota` to compare used versus hard limits, and how to calculate whether reduced per-pod requests will allow additional replicas
+* How `oc set resources` updates both requests and limits on a running deployment with an automatic rolling restart
+* The distinction between a scheduling failure (no node has capacity), an OOM kill (container exceeded its limit), and a quota rejection (namespace-level cap reached)
+
+== Module summary
+
+You have resolved three resource constraint failures in ACME Corp's `acme-resources` namespace.
+
+**What you accomplished:**
+
+* Fixed a `batch-processor` pod stuck in `Pending` by reducing unrealistic CPU (4 cores) and memory (8Gi) requests to values the cluster can satisfy
+* Fixed a `memory-app` container in `OOMKilled` loop by increasing the memory limit from 64Mi to 512Mi to accommodate its 180MB dataset
+* Fixed a `data-pipeline` deployment blocked by a ResourceQuota by reducing per-pod CPU requests from 400m to 200m, allowing three replicas to fit within the 1000m namespace quota
+
+**Key takeaways:**
+
+* `0/3 nodes are available: 3 Insufficient cpu` means the pod's CPU request is larger than what any node has free. Use `oc describe nodes | grep "Allocated resources"` to see how much is available.
+* `OOMKilled` with exit code `137` always means the memory limit was too low. Check `oc logs --previous` to see what the application was doing, then increase the limit with enough headroom.
+* When scaling fails silently, check `oc describe replicaset` for quota rejection events. Use `oc describe resourcequota` to calculate the per-pod request ceiling that keeps the namespace within its quota.
+
+**Next steps:**
+
+xref:09-module-07-application.adoc[Module 7] covers application-level failures. You will investigate pods stuck in `CrashLoopBackOff`, failing liveness and readiness probes, and deployments using a wrong or missing image tag.

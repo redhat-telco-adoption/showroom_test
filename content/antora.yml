@@ -1,5 +1,7 @@
 name: modules
-title: Showroom Collection
+title: OpenShift Troubleshooting Workshop
 version: ~
 nav:
   - modules/ROOT/nav.adoc
+
+
