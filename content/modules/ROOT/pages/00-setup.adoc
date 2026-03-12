@@ -20,12 +20,7 @@ If you see `{user}` in any command, click *Change* in the credential bar and re-
 
 == Step 2: Log In to the OpenShift Web Console
 
-Open the OpenShift Web Console in your browser:
-
-[source,subs="attributes+"]
-----
-{openshift_console_url}
-----
+Click the *Web Console* tab in the right panel of this page to open the embedded OpenShift web console.
 
 Log in with the credentials provided by your instructor:
 
