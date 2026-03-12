@@ -89,6 +89,9 @@ No local software installation is required. All exercises use the web terminal e
 |Password
 |{ password }
 
+|GUID
+|{ guid }
+
 |Cluster ingress domain
 |{openshift_cluster_ingress_domain}
 |===
