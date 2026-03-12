@@ -1,0 +1,15 @@
+Check namespace events to see a timeline of recent activity:
+
+[source,bash]
+----
+oc get events --sort-by='.lastTimestamp'
+----
+
+Events with `Warning` type indicate problems that need attention. Look for error messages that explain why a pod failed to start or why a resource could not be created.
+
+To filter for warning events only:
+
+[source,bash]
+----
+oc get events --field-selector type=Warning
+----

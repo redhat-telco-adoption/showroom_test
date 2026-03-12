@@ -1,0 +1,22 @@
+List all pods in the current namespace and review their status:
+
+[source,bash]
+----
+oc get pods
+----
+
+Look for pods that are not in `Running` or `Completed` state. Common problem states include `CrashLoopBackOff`, `ImagePullBackOff`, `Pending`, and `Error`.
+
+To check pods in a specific namespace:
+
+[source,bash]
+----
+oc get pods -n <namespace>
+----
+
+To continuously watch pod status updates:
+
+[source,bash]
+----
+oc get pods -w
+----

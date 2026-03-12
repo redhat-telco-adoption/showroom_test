@@ -1,0 +1,14 @@
+// Workshop static attributes
+:ocp_version: 4.17
+:namespace: acme-troubleshooting
+
+// Dynamic attributes below are provided by Showroom at runtime.
+// Do not define them here - they are resolved when the lab is deployed.
+//
+// {openshift_console_url}          - OpenShift web console URL
+// {openshift_api_url}              - OpenShift API server URL
+// {openshift_cluster_ingress_domain} - Cluster ingress domain (for routes)
+// {bastion_public_hostname}        - Bastion/web terminal hostname
+// {bastion_ssh_user_name}          - Lab user username
+// {bastion_ssh_password}           - Lab user password
+// {guid}                           - Unique environment identifier

@@ -1,0 +1,21 @@
+Verify that the application route is accessible and returning a successful response:
+
+[source,bash]
+----
+curl -s -o /dev/null -w "%{http_code}\n" https://<route-hostname>
+----
+
+Expected output:
+
+----
+200
+----
+
+A `200` response confirms the application is running and reachable. A `503` typically means the service has no healthy pods to route traffic to.
+
+To get the route hostname:
+
+[source,bash]
+----
+oc get route <route-name> -o jsonpath='{.spec.host}'
+----
