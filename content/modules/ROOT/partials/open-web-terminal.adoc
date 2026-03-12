@@ -1,7 +1,7 @@
-.Open the Web Terminal
+.Switch to the Terminal
 [%collapsible]
 ====
-Click the *>_* icon in the OpenShift web console top navigation bar to open the Web Terminal.
+Click the *Terminal* tab in the right panel of this page to switch to the embedded terminal.
 
-The terminal opens at the bottom of the screen, pre-authenticated as your user.
+The terminal is pre-authenticated and ready to use.
 ====

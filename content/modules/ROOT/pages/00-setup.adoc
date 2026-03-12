@@ -32,11 +32,11 @@ Log in with the credentials provided by your instructor:
 * *Username:* `{user}`
 * *Password:* `{password}`
 
-== Step 3: Open the Web Terminal
+== Step 3: Switch to the Terminal
 
 include::partial$open-web-terminal.adoc[]
 
-Once the Web Terminal is open, verify you are logged in as your user:
+In the *Terminal* tab on the right, verify you are logged in as your user:
 
 [.console-input]
 [source,bash]
