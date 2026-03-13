@@ -1,38 +1,38 @@
 * xref:index.adoc[Workshop Overview]
 * xref:00-setup.adoc[Environment Setup]
 
-.Module 1: Configuration
-* xref:01-01-missing-configmap.adoc[Lab 1.1: Missing ConfigMap]
-* xref:01-02-missing-secret.adoc[Lab 1.2: Missing Secret]
-* xref:01-03-invalid-env.adoc[Lab 1.3: Invalid Env Vars]
+* Module 1: Configuration
+** xref:01-01-missing-configmap.adoc[Lab 1.1: Missing ConfigMap]
+** xref:01-02-missing-secret.adoc[Lab 1.2: Missing Secret]
+** xref:01-03-invalid-env.adoc[Lab 1.3: Invalid Env Vars]
 
-.Module 2: Storage
-* xref:02-01-missing-pvc.adoc[Lab 2.1: Missing PVC]
-* xref:02-02-pvc-pending.adoc[Lab 2.2: PVC Pending]
-* xref:02-03-volume-permissions.adoc[Lab 2.3: Volume Permissions]
+* Module 2: Storage
+** xref:02-01-missing-pvc.adoc[Lab 2.1: Missing PVC]
+** xref:02-02-pvc-pending.adoc[Lab 2.2: PVC Pending]
+** xref:02-03-volume-permissions.adoc[Lab 2.3: Volume Permissions]
 
-.Module 3: Security
-* xref:03-01-rbac.adoc[Lab 3.1: RBAC Configuration]
-* xref:03-02-scc.adoc[Lab 3.2: SCC Violation]
-* xref:03-03-image-pull-secret.adoc[Lab 3.3: ImagePullSecret]
+* Module 3: Security
+** xref:03-01-rbac.adoc[Lab 3.1: RBAC Configuration]
+** xref:03-02-scc.adoc[Lab 3.2: SCC Violation]
+** xref:03-03-image-pull-secret.adoc[Lab 3.3: ImagePullSecret]
 
-.Module 4: Networking
-* xref:04-01-selector-mismatch.adoc[Lab 4.1: Service Selector Mismatch]
-* xref:04-02-route-misconfigured.adoc[Lab 4.2: Route Misconfigured]
-* xref:04-03-dns-failure.adoc[Lab 4.3: DNS Resolution Failure]
-* xref:04-04-network-policy.adoc[Lab 4.4: NetworkPolicy Blocking]
+* Module 4: Networking
+** xref:04-01-selector-mismatch.adoc[Lab 4.1: Service Selector Mismatch]
+** xref:04-02-route-misconfigured.adoc[Lab 4.2: Route Misconfigured]
+** xref:04-03-dns-failure.adoc[Lab 4.3: DNS Resolution Failure]
+** xref:04-04-network-policy.adoc[Lab 4.4: NetworkPolicy Blocking]
 
-.Module 5: Resources
-* xref:05-01-insufficient-resources.adoc[Lab 5.1: Insufficient Resources]
-* xref:05-02-oomkilled.adoc[Lab 5.2: OOMKilled]
-* xref:05-03-quota-exceeded.adoc[Lab 5.3: Quota Exceeded]
+* Module 5: Resources
+** xref:05-01-insufficient-resources.adoc[Lab 5.1: Insufficient Resources]
+** xref:05-02-oomkilled.adoc[Lab 5.2: OOMKilled]
+** xref:05-03-quota-exceeded.adoc[Lab 5.3: Quota Exceeded]
 
-.Module 6: Lifecycle
-* xref:06-01-crashloopbackoff.adoc[Lab 6.1: CrashLoopBackOff]
-* xref:06-02-probe-failure.adoc[Lab 6.2: Probe Failure]
-* xref:06-03-wrong-image-tag.adoc[Lab 6.3: Wrong Image Tag]
+* Module 6: Lifecycle
+** xref:06-01-crashloopbackoff.adoc[Lab 6.1: CrashLoopBackOff]
+** xref:06-02-probe-failure.adoc[Lab 6.2: Probe Failure]
+** xref:06-03-wrong-image-tag.adoc[Lab 6.3: Wrong Image Tag]
 
 * xref:99-conclusion.adoc[Conclusion]
 
-.Reference
-* xref:99-cheatsheet.adoc[oc Cheat Sheet]
+* Reference
+** xref:99-cheatsheet.adoc[oc Cheat Sheet]
