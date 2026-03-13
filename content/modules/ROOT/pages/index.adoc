@@ -1,16 +1,35 @@
 = OpenShift Troubleshooting Workshop
 include::_attributes.adoc[]
 
-Welcome to the *OpenShift Troubleshooting Workshop*! In this hands-on workshop, you will diagnose and fix 19 broken application environments running on OpenShift. Each lab presents a realistic failure scenario that platform engineers and developers encounter in production.
+Welcome to the *OpenShift Troubleshooting Workshop*. In this workshop you take on the role of a platform engineer or developer responding to a series of production incidents on an OpenShift cluster. 19 applications are broken -- each one with a different root cause. Your job is to diagnose and fix them all.
+
+== Your challenge
+
+A team of developers has deployed 19 applications across 6 namespaces. Every application has a deliberate defect representing a failure mode commonly encountered in production environments. Some pods refuse to start, some crash immediately, some run but cannot serve traffic, and some are stuck waiting for resources that do not exist.
+
+Each lab presents one broken application. You will use the `oc` CLI and the OpenShift Web Console to investigate the symptoms, identify the root cause, and apply a fix. The application must return to `Running` state and serve traffic through its Route.
 
 == What you will learn
 
-By the end of this workshop you will be able to:
+By completing this workshop you will be able to:
 
-* Systematically diagnose common OpenShift application failures
-* Use `oc` CLI commands and the Web Console to investigate issues
-* Fix configuration, storage, networking, security, and resource problems
-* Build confidence troubleshooting production OpenShift clusters
+* Diagnose configuration failures caused by missing ConfigMaps and Secrets
+* Resolve storage issues including missing PVCs, wrong StorageClasses, and volume permission errors
+* Fix security violations involving RBAC, SCCs, and image pull authentication
+* Troubleshoot networking failures including selector mismatches, route misconfiguration, DNS blocking, and NetworkPolicy issues
+* Identify and correct resource constraint problems including scheduling failures, OOMKills, and quota exhaustion
+* Resolve application lifecycle problems including bad command overrides, misconfigured probes, and wrong image tags
+
+== Target audience
+
+This workshop is designed for:
+
+* *Platform engineers* managing OpenShift clusters and supporting developer teams
+* *Developers* deploying and operating applications on OpenShift
+* *Site reliability engineers (SREs)* responding to application incidents
+* Anyone preparing for OpenShift administrator or developer certifications
+
+A basic familiarity with Kubernetes concepts (Pods, Deployments, Services) is helpful but not required.
 
 == Workshop labs
 
@@ -41,23 +60,70 @@ The labs are organized into six categories of increasing complexity:
 | 6.3 | Wrong Image Tag | [.label.label-green]#Beginner#
 |===
 
+== How the labs are structured
+
+Each lab follows the same structure:
+
+. *Overview* -- describes the broken application and your mission
+. *Learning objectives* -- the specific skills you will practice
+. *Exercise 1: Investigate the problem* -- guided steps to explore symptoms and diagnose the root cause using both the Web Console and the `oc` CLI
+. *Exercise 2: Resolve the issue* -- steps to apply a fix and verify that the application is healthy
+
+Progressive hints are available in each lab. Try to work through the problem before opening them. A full solution is available for instructors.
+
 == Suggested schedule
+
+The workshop is designed to be completed in approximately 4 hours. The table below shows a suggested pacing.
 
 [cols="1,3", options="header"]
 |===
 | Time | Activity
 
 | 15 min | Environment setup and orientation
-| 30 min | Module 1: Configuration & Resources (Labs 1.1-1.3)
-| 30 min | Module 2: Storage (Labs 2.1-2.3)
+| 30 min | Module 1: Configuration (Labs 1.1–1.3)
+| 30 min | Module 2: Storage (Labs 2.1–2.3)
 | 15 min | Break
-| 30 min | Module 3: Security & Access Control (Labs 3.1-3.3)
-| 30 min | Module 4: Networking & Routing (Labs 4.1-4.4)
+| 30 min | Module 3: Security (Labs 3.1–3.3)
+| 30 min | Module 4: Networking (Labs 4.1–4.4)
 | 15 min | Break
-| 30 min | Module 5: Resource Limits & Scheduling (Labs 5.1-5.3)
-| 30 min | Module 6: Application Lifecycle (Labs 6.1-6.3)
+| 30 min | Module 5: Resources (Labs 5.1–5.3)
+| 30 min | Module 6: Lifecycle (Labs 6.1–6.3)
 | 15 min | Wrap-up and Q&A
 |===
+
+== Prerequisites
+
+Before attending this workshop you should be comfortable with:
+
+* Basic Linux command-line usage (navigating directories, running commands)
+* Fundamental Kubernetes or OpenShift concepts: Pods, Deployments, Services, and namespaces
+* Familiarity with YAML syntax
+
+No prior OpenShift troubleshooting experience is required.
+
+== Tools used
+
+=== oc CLI
+
+All labs include step-by-step `oc` CLI instructions. The `oc` command-line tool is the primary interface for interacting with OpenShift. It is pre-installed in the embedded terminal.
+
+Key commands used throughout the workshop include:
+
+* `oc get pods` -- list pod status
+* `oc describe pod` -- detailed pod info and events
+* `oc logs` -- container log output
+* `oc get events` -- namespace event stream
+* `oc edit` / `oc patch` / `oc set` -- make changes to resources
+
+See the xref:99-cheatsheet.adoc[oc Cheat Sheet] for a full reference.
+
+=== OpenShift Web Console
+
+Each lab also provides Web Console instructions as an alternative to the CLI. The Web Console is embedded in the right panel of the Showroom interface.
+
+=== OpenShift version
+
+This workshop targets OpenShift 4.12 or later. All commands and features shown are available in current OpenShift 4.x releases.
 
 == How to use this guide
 

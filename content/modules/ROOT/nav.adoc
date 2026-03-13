@@ -1,6 +1,4 @@
 * xref:index.adoc[Workshop Overview]
-* xref:01-overview.adoc[Workshop overview]
-* xref:02-details.adoc[Workshop details]
 * xref:00-setup.adoc[Environment Setup]
 
 .Module 1: Configuration
@@ -35,4 +33,6 @@
 * xref:06-03-wrong-image-tag.adoc[Lab 6.3: Wrong Image Tag]
 
 * xref:99-conclusion.adoc[Conclusion]
+
+.Reference
 * xref:99-cheatsheet.adoc[oc Cheat Sheet]
