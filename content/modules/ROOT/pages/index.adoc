@@ -3,7 +3,7 @@ include::_attributes.adoc[]
 
 Welcome to the *OpenShift Troubleshooting Workshop*! In this hands-on workshop, you will diagnose and fix 19 broken application environments running on OpenShift. Each lab presents a realistic failure scenario that platform engineers and developers encounter in production.
 
-== What You Will Learn
+== What you will learn
 
 By the end of this workshop you will be able to:
 
@@ -12,7 +12,7 @@ By the end of this workshop you will be able to:
 * Fix configuration, storage, networking, security, and resource problems
 * Build confidence troubleshooting production OpenShift clusters
 
-== Workshop Labs
+== Workshop labs
 
 The labs are organized into six categories of increasing complexity:
 
@@ -41,7 +41,7 @@ The labs are organized into six categories of increasing complexity:
 | 6.3 | Wrong Image Tag | [.label.label-green]#Beginner#
 |===
 
-== Suggested Schedule
+== Suggested schedule
 
 [cols="1,3", options="header"]
 |===
@@ -59,11 +59,11 @@ The labs are organized into six categories of increasing complexity:
 | 15 min | Wrap-up and Q&A
 |===
 
-== How to Use This Guide
+== How to use this guide
 
 Before you begin, make sure the URL of this workshop guide includes your user parameters. Your instructor will provide a URL like:
 
-[source]
+[source,text]
 ----
 https://<workshop-url>?USER=user1&PASSWORD=openshift-workshop&CLUSTER_SUBDOMAIN=apps.cluster.example.com
 ----

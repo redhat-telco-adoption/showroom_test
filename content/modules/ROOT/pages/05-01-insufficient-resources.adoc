@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The application `lab-5-1-app` is stuck in `Pending` state. The pod cannot be scheduled because it requests far more CPU and memory than any node in the cluster can provide. Your mission is to reduce the resource requests to reasonable values so the pod can be scheduled.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify a `Pending` pod caused by excessive resource requests using `oc get events` and node inspection
+* Understand how pod resource requests affect scheduler placement decisions
+* Apply `oc set resources` to reduce requests to schedulable values and restore the application to `Running` state
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -32,12 +40,12 @@ include::partial$check-events.adoc[]
 Look for scheduling failure messages:
 
 [.console-output]
-[source]
+[source,text]
 ----
 Warning  FailedScheduling  ...  0/6 nodes are available: 6 Insufficient cpu, 6 Insufficient memory.
 ----
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -87,7 +95,7 @@ oc adm top nodes
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -107,7 +115,9 @@ The nginx application needs very little resources. Reasonable requests would be 
 Use `oc set resources` or `oc edit deployment` to update the resource requests and limits to reasonable values.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Reduce the resource requests and limits in the Deployment to values that can be satisfied by the cluster nodes.
 
@@ -126,7 +136,7 @@ oc set resources deployment/lab-5-1-app \
 This triggers a new rollout with the reduced resource requirements. The scheduler will find a suitable node.
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 include::partial$check-pod-status.adoc[]
 

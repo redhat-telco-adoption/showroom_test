@@ -3,7 +3,13 @@ include::_attributes.adoc[]
 
 Before starting the labs, verify that your environment is set up correctly.
 
-== Step 1: Enter Your Workshop Credentials
+== Learning objectives
+
+* Verify access to your assigned OpenShift cluster using the `oc` CLI and the Web Console
+* Confirm that all 6 workshop namespaces are available and contain pre-deployed lab workloads
+* Navigate the Showroom interface to use the embedded terminal and Web Console side by side
+
+== Step 1: Enter your workshop credentials
 
 Look for the red credential bar at the top of this page. Enter:
 
@@ -18,9 +24,9 @@ Once set, your credentials are preserved as you navigate between lab pages.
 If you see `{user}` in any command, click *Change* in the credential bar and re-enter your details.
 ====
 
-== Step 2: Log In to the OpenShift Web Console
+== Step 2: Log in to the OpenShift web console
 
-image::setup-showroom-split-view.png[Showroom split view with lab instructions on the left and OCP Console login on the right,link=self]
+image::setup-showroom-split-view.png[Showroom split view with lab instructions on the left and OCP Console login on the right,link=self,window=blank]
 
 Click the *Web Console* tab in the right panel of this page to open the embedded OpenShift web console.
 
@@ -29,7 +35,7 @@ Log in with the credentials provided by your instructor:
 * *Username:* `{user}`
 * *Password:* `{password}`
 
-== Step 3: Switch to the Terminal
+== Step 3: Switch to the terminal
 
 include::partial$open-web-terminal.adoc[]
 
@@ -38,7 +44,7 @@ In the *Terminal* tab on the right, verify you are logged in as your user:
 [.console-input]
 [source,bash]
 ----
-oc whoami
+ oc whoami
 ----
 
 [.console-output]
@@ -47,9 +53,9 @@ oc whoami
 {user}
 ----
 
-== Step 4: Verify Namespace Access
+== Step 4: Verify namespace access
 
-You have six namespaces assigned to you, one per module:
+You have 6 namespaces assigned to you, one per module:
 
 * `{ns_configuration}` -- Module 1: Configuration labs
 * `{ns_storage}` -- Module 2: Storage labs
@@ -66,7 +72,7 @@ Verify you can list your namespaces:
 oc get projects | grep {user}
 ----
 
-You should see all six namespaces listed. Each namespace contains broken workloads for that module's lab exercises.
+You should see all 6 namespaces listed. Each namespace contains broken workloads for that module's lab exercises.
 
 Verify access to one namespace as an example:
 
@@ -78,7 +84,7 @@ oc get pods -n {ns_configuration}
 
 You should see several pods in various error states -- that is expected! Each pod corresponds to a lab exercise.
 
-== Step 5: Explore the Web Console
+== Step 5: Explore the web console
 
 In the OpenShift Web Console:
 
@@ -87,7 +93,7 @@ In the OpenShift Web Console:
 . Click *Topology* to see the deployed applications
 . Notice the various error indicators on the application icons
 
-== Tips for the Workshop
+== Tips for the workshop
 
 * *Use both the Web Console and CLI* -- the labs provide instructions for both approaches
 * *Read error messages carefully* -- OpenShift error messages are descriptive and point you in the right direction

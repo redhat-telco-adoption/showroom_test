@@ -1,0 +1,47 @@
+= Conclusion
+include::_attributes.adoc[]
+
+Congratulations! You have completed the OpenShift Troubleshooting Workshop. You worked through 19 realistic production failures, diagnosing and fixing each one using the `oc` CLI and the OpenShift Web Console.
+
+== What you've learned
+
+You have practiced troubleshooting skills across 6 categories:
+
+* *Configuration* -- identifying and resolving missing ConfigMaps, missing Secrets, and invalid environment variable configurations
+* *Storage* -- diagnosing missing PVCs, incorrect StorageClasses, and volume permission errors caused by `fsGroup` mismatches
+* *Security* -- resolving RBAC permission denials, SCC violations blocking privileged containers, and missing image pull Secrets
+* *Networking* -- fixing Service selector mismatches, Route `targetPort` errors, DNS egress blocking, and NetworkPolicy ingress restrictions
+* *Resources* -- correcting over-allocated resource requests, OOMKilled memory limits, and ResourceQuota exhaustion
+* *Application lifecycle* -- removing bad command overrides, fixing misconfigured readiness and liveness probes, and correcting invalid image tags
+
+== Key troubleshooting patterns
+
+Across all labs you applied a consistent diagnostic approach:
+
+. *Observe symptoms* -- check pod status, events, and logs to understand what is failing
+. *Identify root cause* -- use `oc describe`, `oc get events`, and YAML inspection to find the specific misconfiguration
+. *Apply a targeted fix* -- change only what is needed to resolve the root cause
+. *Verify the outcome* -- confirm the pod reaches `Running` state and the Route serves traffic
+
+This pattern applies to the vast majority of OpenShift application failures you will encounter in production.
+
+== Next steps
+
+To continue building your OpenShift troubleshooting skills:
+
+* Practice with the xref:99-cheatsheet.adoc[oc Cheat Sheet] -- keep it handy for production incidents
+* Explore the OpenShift documentation for deeper dives into each topic area
+* Try reproducing these failure scenarios in your own cluster to build muscle memory
+* Consider the Red Hat OpenShift Administrator (EX280) or Developer (EX288) certification exams
+
+== References
+
+The following OpenShift documentation resources cover the topics in this workshop:
+
+* https://docs.openshift.com/container-platform/latest/applications/deployments/deployment-strategies.html[Deployment strategies^]
+* https://docs.openshift.com/container-platform/latest/storage/understanding-persistent-storage.html[Understanding persistent storage^]
+* https://docs.openshift.com/container-platform/latest/authentication/using-rbac.html[Using RBAC to define and apply permissions^]
+* https://docs.openshift.com/container-platform/latest/authentication/managing-security-context-constraints.html[Managing Security Context Constraints^]
+* https://docs.openshift.com/container-platform/latest/networking/network_policy/about-network-policy.html[About network policy^]
+* https://docs.openshift.com/container-platform/latest/nodes/clusters/nodes-cluster-resource-configure.html[Configuring cluster resources^]
+* https://docs.openshift.com/container-platform/latest/applications/application-health.html[Monitoring application health^]

@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The application `lab-5-2-app` keeps crashing with exit code 137. The container is being killed by the kernel's Out-Of-Memory (OOM) killer because the memory limit is set too low for the application's needs. Your mission is to identify the OOMKilled condition and increase the memory limit.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify `OOMKilled` container termination (exit code 137) using `oc describe pod` and container status inspection
+* Understand how memory limits affect container runtime and cause kernel OOM kills when exceeded
+* Apply `oc set resources` to increase the memory limit and restore the application to `Running` state
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -42,7 +50,7 @@ oc get pod -l app=lab-5-2-app -n {module_namespace} -o jsonpath='{.items[0].stat
 }
 ----
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -68,7 +76,7 @@ oc describe pod -l app=lab-5-2-app -n {module_namespace}
 Look for:
 
 [.console-output]
-[source]
+[source,text]
 ----
 Last State:     Terminated
   Reason:       OOMKilled
@@ -91,7 +99,7 @@ oc get deployment lab-5-2-app -n {module_namespace} -o jsonpath='{.spec.template
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -111,7 +119,9 @@ The memory limit is `32Mi` but the application needs approximately 100MB at runt
 Increase the memory limit to at least `256Mi`. Use `oc set resources` to update both requests and limits.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Increase the memory limit for the Deployment so the application has enough memory to run without being OOM killed.
 
@@ -130,7 +140,7 @@ oc set resources deployment/lab-5-2-app \
 This triggers a new rollout with sufficient memory allocation.
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 include::partial$check-pod-status.adoc[]
 

@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The `lab-4-3-frontend` application displays a page but shows an error: "Cannot connect to backend service." The frontend tries to reach `lab-4-3-backend-svc` but DNS resolution fails due to a NetworkPolicy that blocks egress UDP port 53 (DNS). Your mission is to identify the DNS blocking and fix the NetworkPolicy.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify DNS resolution failures from within a pod using `nslookup` and NetworkPolicy inspection
+* Understand how restrictive NetworkPolicy egress rules can block DNS (UDP port 53) and prevent service discovery
+* Apply a NetworkPolicy update to allow DNS egress and restore backend connectivity
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -28,7 +36,7 @@ lab-4-3-frontend-9i0j1k2l3-m4n5o     1/1     Running   0          5m
 
 But the frontend Route shows an error when accessed in the browser: *"Cannot connect to backend service."*
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -61,7 +69,7 @@ nslookup lab-4-3-backend-svc
 ----
 
 [.console-output]
-[source]
+[source,text]
 ----
 ;; connection timed out; no servers could be reached
 ----
@@ -86,7 +94,7 @@ Notice the egress rules only allow TCP traffic -- UDP port 53 for DNS is missing
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -106,7 +114,9 @@ The NetworkPolicy `lab-4-3-frontend-egress` has an egress rule allowing TCP traf
 Edit the NetworkPolicy to add an egress rule allowing UDP on port 53. The rule should allow traffic to the `openshift-dns` namespace or simply allow all egress UDP/53 traffic.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Update the NetworkPolicy to allow DNS egress traffic (UDP port 53) from the frontend pods.
 
@@ -157,7 +167,7 @@ EOF
 ----
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 Exec into the frontend pod and test DNS:
 

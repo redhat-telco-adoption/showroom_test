@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The application `lab-2-3-app` starts but fails to operate correctly. The container logs reveal `Permission denied` errors when trying to write to the mounted volume at `/data`. Your mission is to diagnose the volume ownership issue and fix the Deployment so the container process can write to the volume.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify `Permission denied` errors when a container cannot write to a mounted volume using `oc logs`
+* Understand how volume ownership and `fsGroup` affect container access to PVC-mounted directories
+* Apply `securityContext.fsGroup` to the Deployment to grant the container write access to the volume
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -34,14 +42,14 @@ oc logs -l app=lab-2-3-app -n {module_namespace} --previous
 ----
 
 [.console-output]
-[source]
+[source,text]
 ----
 Starting application...
 Writing data to /data/output.log
 /docker-entrypoint.sh: Permission denied: /data/output.log
 ----
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -78,7 +86,7 @@ You will likely see that the volume is owned by `root` but the container runs as
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -98,7 +106,9 @@ Kubernetes provides a `securityContext` field at the pod level that can set the 
 Add `securityContext.fsGroup: 1000` to the pod spec (not the container spec). This tells Kubernetes to change the group ownership of all mounted volumes to GID 1000, which matches the container user.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Modify the Deployment's pod security context to ensure the mounted volume is accessible by the container process. You need to set the `fsGroup` field.
 
@@ -131,7 +141,7 @@ securityContext:
 This triggers a new rollout with the corrected volume permissions.
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 include::partial$check-pod-status.adoc[]
 

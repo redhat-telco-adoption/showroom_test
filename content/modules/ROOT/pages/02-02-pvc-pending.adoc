@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The application `lab-2-2-app` is stuck in `Pending` state. Unlike the previous lab, the PVC exists but it is also stuck in `Pending`. The PVC requests a StorageClass that does not exist on the cluster. Your mission is to fix the PVC so it can bind and the pod can start.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify a PVC stuck in `Pending` state due to a missing StorageClass using `oc describe pvc`
+* Understand how StorageClass availability affects dynamic volume provisioning
+* Apply a corrected PVC with a valid StorageClass to restore the application to `Running` state
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -40,7 +48,7 @@ NAME              STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AG
 lab-2-2-data      Pending                                      gold-storage   2m
 ----
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -65,7 +73,7 @@ oc describe pvc lab-2-2-data -n {module_namespace}
 Look for the event:
 
 [.console-output]
-[source]
+[source,text]
 ----
 Warning  ProvisioningFailed  ...  storageclass.storage.k8s.io "gold-storage" not found
 ----
@@ -80,7 +88,7 @@ oc get storageclass
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -100,7 +108,9 @@ Run `oc get storageclass` to see the available StorageClasses. The default Stora
 Delete the existing PVC, then create a new one with the same name but using the cluster's default StorageClass (or omit the `storageClassName` field entirely to use the default).
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Replace the PVC `lab-2-2-data` with one that uses an available StorageClass. You will need to delete the broken PVC and create a corrected one.
 
@@ -143,7 +153,7 @@ oc delete pod -l app=lab-2-2-app -n {module_namespace}
 ----
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 Check that the PVC is now bound:
 

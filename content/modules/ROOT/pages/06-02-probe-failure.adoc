@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The application `lab-6-2-app` starts but never becomes Ready (shows `0/1`). The container is running but Kubernetes keeps restarting it because the readiness and liveness probes are misconfigured -- they check the wrong path and wrong port. Your mission is to fix the probe configuration.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify readiness and liveness probe failures causing `0/1 Running` state using `oc describe pod` events
+* Understand how misconfigured probe paths and ports prevent pods from becoming Ready
+* Apply corrected probe configuration with the right path, port, and timing to restore the pod to `Ready` state
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -27,7 +35,7 @@ lab-6-2-app-9b0c1d2e3-f4g5h   0/1     Running   3            3m
 
 Notice the pod is `Running` but `0/1` Ready, and has multiple restarts.
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -55,7 +63,7 @@ oc describe pod -l app=lab-6-2-app -n {module_namespace}
 Look for probe failures in Events:
 
 [.console-output]
-[source]
+[source,text]
 ----
 Warning  Unhealthy  ...  Readiness probe failed: HTTP probe failed with statuscode: 404
 Warning  Unhealthy  ...  Liveness probe failed: Get "http://10.128.x.x:9090/healthz": dial tcp 10.128.x.x:9090: connect: connection refused
@@ -88,7 +96,7 @@ The probes target path `/healthz` on port `9090`, but nginx serves on port `8080
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -108,7 +116,9 @@ The nginx container serves its default page at path `/` on port `8080`. Update b
 Edit the Deployment and change both probes: set `path` to `/`, `port` to `8080`, and `initialDelaySeconds` to `5`. Use `oc edit deployment` to make all changes at once.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Update the readiness and liveness probes to use the correct path, port, and timing values.
 
@@ -151,7 +161,7 @@ oc patch deployment lab-6-2-app -n {module_namespace} --type=json -p='[
 ----
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 include::partial$check-pod-status.adoc[]
 

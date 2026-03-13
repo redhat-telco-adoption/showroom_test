@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The application `lab-1-1-app` is deployed in your namespace but the pod is stuck in an error state. The container cannot start because it references a ConfigMap that does not exist. Your mission is to identify the missing ConfigMap and create it so the application starts successfully.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify `CreateContainerConfigError` state using `oc describe pod` and event inspection
+* Understand how missing ConfigMaps prevent pod startup and cause configuration errors
+* Apply `oc create configmap` to create the required resource and restore the application to `Running` state
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -32,12 +40,12 @@ include::partial$check-events.adoc[]
 Look for an event message similar to:
 
 [.console-output]
-[source]
+[source,text]
 ----
 Warning  Failed  ...  configmap "app-config" not found
 ----
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -71,14 +79,14 @@ oc get configmap app-config -n {module_namespace}
 ----
 
 [.console-output]
-[source]
+[source,text]
 ----
 Error from server (NotFound): configmaps "app-config" not found
 ----
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -104,7 +112,9 @@ The Deployment mounts a ConfigMap named `app-config` at `/usr/share/nginx/html`.
 Create a ConfigMap with the name `app-config` and a key `index.html`. The value should be valid HTML content. Use `oc create configmap` or apply a YAML manifest.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 You need to create the missing ConfigMap named `app-config` in the `{module_namespace}` namespace. The ConfigMap must contain a key called `index.html` with HTML content that the nginx container will serve.
 
@@ -134,7 +144,7 @@ EOF
 After creating the ConfigMap, the pod will automatically restart and transition to `Running`.
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 include::partial$check-pod-status.adoc[]
 

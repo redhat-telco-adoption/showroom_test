@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The application `lab-4-1-app` pods are running and healthy, but accessing the Route returns a `503 Service Unavailable` error. The Service is not routing traffic to the pods because of a label mismatch between the Service selector and the pod labels. Your mission is to find and fix the mismatch.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify a `503 Service Unavailable` error caused by empty Service endpoints using `oc get endpoints`
+* Understand how Service selectors must exactly match pod labels for traffic routing to work
+* Apply a Service patch to correct the label selector and restore traffic flow to the application
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -34,12 +42,12 @@ curl -s -o /dev/null -w "%\{http_code}" $(oc get route lab-4-1-route -n {module_
 ----
 
 [.console-output]
-[source]
+[source,text]
 ----
 503
 ----
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -97,7 +105,7 @@ Empty endpoints confirms the selector mismatch.
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -117,7 +125,9 @@ The Service selector is `app: myapp` but the pods have the label `app: my-app`. 
 Edit the Service to change its selector from `app: myapp` to `app: my-app` to match the pod labels. Use `oc edit svc` or `oc patch`.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Update the Service selector to match the actual pod labels so that endpoints are populated and traffic flows correctly.
 
@@ -142,7 +152,7 @@ oc edit svc lab-4-1-svc -n {module_namespace}
 Change `app: myapp` to `app: my-app` under `spec.selector`.
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 Check that endpoints are now populated:
 

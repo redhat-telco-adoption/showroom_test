@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The application `lab-3-2-app` in the `{module_namespace}` namespace cannot start because its Deployment spec requests to run as root (UID 0). OpenShift's Security Context Constraints (SCCs) prevent this by default. Your mission is to understand why the pod is rejected and fix the issue.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify SCC admission errors blocking pod creation due to a `runAsUser: 0` requirement
+* Understand how Security Context Constraints (SCCs) restrict privileged container configurations in OpenShift
+* Apply a Deployment patch to remove the root user requirement and comply with the default `restricted-v2` SCC
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -41,7 +49,7 @@ oc get events -n {module_namespace} --sort-by='.lastTimestamp' --field-selector 
 
 Look for SCC-related admission errors.
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -83,7 +91,7 @@ oc get pod -l app=lab-3-2-app -n {module_namespace} -o yaml | grep -i scc
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -92,9 +100,9 @@ OpenShift uses Security Context Constraints (SCCs) to control what security sett
 ====
 
 [%collapsible]
-.Hint 2 -- Two approaches
+.Hint 2 -- 2 ways to fix this
 ====
-There are two ways to fix this:
+There are 2 ways to fix this:
 
 1. *Recommended:* Remove the `runAsUser: 0` from the Deployment spec. The nginx image works fine without root.
 2. *Alternative:* Grant the `anyuid` SCC to the ServiceAccount. This is less secure and should only be used when the application truly requires root.
@@ -106,7 +114,9 @@ There are two ways to fix this:
 The simplest fix is to edit the Deployment and remove the `securityContext.runAsUser: 0` field. Use `oc edit deployment` or `oc patch`.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Remove the root user requirement from the Deployment spec so it complies with OpenShift's default SCC, or grant the appropriate SCC to the ServiceAccount.
 
@@ -139,7 +149,7 @@ oc delete pod -l app=lab-3-2-app -n {module_namespace}
 ----
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 [.console-input]
 [source,bash,subs="attributes+"]

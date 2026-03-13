@@ -177,7 +177,7 @@ A quick reference of commonly used `oc` commands for troubleshooting OpenShift a
 | List Security Context Constraints
 |===
 
-== Resources & Scheduling
+== Resources & scheduling
 
 [cols="2,3", options="header"]
 |===
@@ -205,7 +205,7 @@ A quick reference of commonly used `oc` commands for troubleshooting OpenShift a
 | Scale a Deployment
 |===
 
-== Deployments & Rollouts
+== Deployments & rollouts
 
 [cols="2,3", options="header"]
 |===
@@ -230,7 +230,7 @@ A quick reference of commonly used `oc` commands for troubleshooting OpenShift a
 | Edit a Deployment in your default editor
 |===
 
-== Useful Flags
+== Useful flags
 
 [cols="2,3", options="header"]
 |===
