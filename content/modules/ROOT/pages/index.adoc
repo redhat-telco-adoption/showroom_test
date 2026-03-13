@@ -123,7 +123,7 @@ Each lab also provides Web Console instructions as an alternative to the CLI. Th
 
 === OpenShift version
 
-This workshop targets OpenShift 4.12 or later. All commands and features shown are available in current OpenShift 4.x releases.
+This workshop targets OpenShift 4.18 or later. All commands and features shown are available in current OpenShift 4.x releases.
 
 == How to use this guide
 
