@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 In the `{module_namespace}` namespace, a Job runs under the `deploy-bot` ServiceAccount and attempts to create a Deployment. The Job fails because the ServiceAccount lacks the necessary RBAC permissions. Your mission is to diagnose the RBAC denial and create the appropriate Role and RoleBinding so the Job can succeed.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify RBAC Forbidden errors from Job logs using `oc logs` and `oc auth can-i`
+* Understand how Role-based access control governs what ServiceAccounts can do in a namespace
+* Apply a Role and RoleBinding to grant the required permissions and allow the Job to succeed
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -45,7 +53,7 @@ oc logs -l job-name=lab-3-1-deployer-job -n {module_namespace}
 Error from server (Forbidden): deployments.apps is forbidden: User "system:serviceaccount:{module_namespace}:deploy-bot" cannot create resource "deployments" in API group "apps" in the namespace "{module_namespace}"
 ----
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -71,7 +79,7 @@ oc auth can-i create deployments --as=system:serviceaccount:{module_namespace}:d
 ----
 
 [.console-output]
-[source]
+[source,text]
 ----
 no
 ----
@@ -94,7 +102,7 @@ oc get serviceaccount deploy-bot -n {module_namespace}
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -114,7 +122,9 @@ The Job needs to create, get, list, and update Deployments in the `apps` API gro
 Create a Role with `oc create role` and then bind it with `oc create rolebinding`. The RoleBinding should reference the `deploy-bot` ServiceAccount.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Create a Role granting deployment management permissions and bind it to the `deploy-bot` ServiceAccount in the `{module_namespace}` namespace. Then re-run the Job.
 
@@ -159,7 +169,7 @@ oc get job lab-3-1-deployer-job -n {module_namespace} -o yaml | \
 If the above does not work, apply the Job manifest again from the install directory.
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 Verify the RBAC permissions:
 
@@ -170,7 +180,7 @@ oc auth can-i create deployments --as=system:serviceaccount:{module_namespace}:d
 ----
 
 [.console-output]
-[source]
+[source,text]
 ----
 yes
 ----

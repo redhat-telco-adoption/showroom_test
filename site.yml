@@ -1,8 +1,10 @@
 ---
 site:
   title: OpenShift Troubleshooting Workshop
-  url: https://github.com/rhpds/showroom_template_nookbag
   start_page: modules::index.adoc
+
+runtime:
+  fetch: true
 
 content:
   sources:

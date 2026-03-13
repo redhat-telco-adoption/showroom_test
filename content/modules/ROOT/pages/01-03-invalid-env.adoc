@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The application `lab-1-3-app` is crashing immediately after startup. The container logs reveal that required environment variables are missing. Your mission is to examine the logs, determine what environment variables the application needs, and add them to the Deployment.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify missing environment variables by reading container logs and `CrashLoopBackOff` state
+* Understand how applications validate required environment variables at startup and what happens when they are absent
+* Apply `oc set env` to add the required variables and restore the application to `Running` state
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -34,12 +42,12 @@ oc logs -l app=lab-1-3-app -n {module_namespace} --previous
 ----
 
 [.console-output]
-[source]
+[source,text]
 ----
 ERROR: DATABASE_URL is not set. Exiting.
 ----
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -75,7 +83,7 @@ oc get deployment lab-1-3-app -n {module_namespace} -o jsonpath='{.spec.template
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -95,7 +103,9 @@ The application requires two environment variables: `DATABASE_URL` and `APP_NAME
 Use `oc set env` to add the missing environment variables to the Deployment, or edit the Deployment YAML directly to add them under `spec.template.spec.containers[0].env`.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Add the required environment variables to the `lab-1-3-app` Deployment. The application needs `DATABASE_URL` and `APP_NAME` to be set.
 
@@ -114,7 +124,7 @@ oc set env deployment/lab-1-3-app \
 This triggers a new rollout. The pod should start successfully with the environment variables set.
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 include::partial$check-pod-status.adoc[]
 

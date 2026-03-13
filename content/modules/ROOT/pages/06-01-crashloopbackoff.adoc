@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The application `lab-6-1-app` is stuck in `CrashLoopBackOff`. The Deployment spec overrides the container's default command with a binary that does not exist. Your mission is to examine the logs, identify the bad command override, and remove it so the container starts with its default entrypoint.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify a `CrashLoopBackOff` caused by an invalid command override using `oc logs --previous`
+* Understand how Deployment `command` fields override container entrypoints and can cause startup failures
+* Apply a Deployment patch to remove the bad command override and restore the default container entrypoint
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -34,12 +42,12 @@ oc logs -l app=lab-6-1-app -n {module_namespace} --previous
 ----
 
 [.console-output]
-[source]
+[source,text]
 ----
 Error: failed to create containerd task: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: exec: "/usr/bin/nonexistent-binary": stat /usr/bin/nonexistent-binary: no such file or directory
 ----
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -74,7 +82,7 @@ The container is trying to run a binary that does not exist in the image.
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -94,7 +102,9 @@ The Deployment has `command: ["/usr/bin/nonexistent-binary"]` set in the contain
 Remove the `command` field from the container spec entirely. The container image already has a correct default entrypoint. Use `oc edit deployment` or `oc patch`.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Remove the incorrect command override from the Deployment so the container uses its default entrypoint.
 
@@ -111,7 +121,7 @@ oc patch deployment lab-6-1-app -n {module_namespace} --type=json \
 This triggers a new rollout using the image's default entrypoint.
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 include::partial$check-pod-status.adoc[]
 

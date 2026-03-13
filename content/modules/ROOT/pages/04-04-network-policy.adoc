@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The `lab-4-4-frontend` application cannot reach the `lab-4-4-backend` service. Both pods are running, DNS resolves correctly, but direct HTTP connections from frontend to backend time out. A NetworkPolicy on the backend only allows ingress from pods with the label `role: api-gateway`, but the frontend has `role: frontend`. Your mission is to fix the NetworkPolicy to allow the frontend to reach the backend.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify NetworkPolicy blocking causing connection timeouts using `oc rsh` and connectivity testing
+* Understand how NetworkPolicy `from` selectors restrict which pods can communicate with a backend
+* Apply a NetworkPolicy patch to update the allowed ingress source labels and restore frontend-to-backend traffic
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -28,7 +36,7 @@ lab-4-4-frontend-7h8i9j0k1-l2m3n     1/1     Running   0          5m
 
 The frontend Route loads but shows: *"Error: Connection to backend timed out."*
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -59,7 +67,7 @@ curl -s --connect-timeout 5 http://lab-4-4-backend-svc:8080
 ----
 
 [.console-output]
-[source]
+[source,text]
 ----
 curl: (28) Connection timed out after 5000 milliseconds
 ----
@@ -86,7 +94,7 @@ The NetworkPolicy allows from `role: api-gateway`, but the frontend has `role: f
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -106,7 +114,9 @@ The backend's NetworkPolicy `lab-4-4-backend-ingress` allows ingress only from p
 The recommended fix is to update the NetworkPolicy's `podSelector` in the ingress `from` section to match `role: frontend`. This is more correct than relabeling the frontend pods.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Update the backend's NetworkPolicy to allow ingress traffic from the frontend pods. Modify the allowed label selector to match the frontend's actual labels.
 
@@ -151,7 +161,7 @@ oc patch networkpolicy lab-4-4-backend-ingress -n {module_namespace} --type=json
 ----
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 Test connectivity from the frontend:
 
@@ -168,7 +178,7 @@ curl -s --connect-timeout 5 http://lab-4-4-backend-svc:8080
 ----
 
 [.console-output]
-[source]
+[source,text]
 ----
 Hello from the backend!
 ----

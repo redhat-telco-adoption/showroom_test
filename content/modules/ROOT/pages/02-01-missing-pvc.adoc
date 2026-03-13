@@ -8,7 +8,15 @@ include::_attributes.adoc[]
 
 The application `lab-2-1-app` is stuck in `Pending` state. The pod cannot be scheduled because it references a PersistentVolumeClaim that does not exist. Your mission is to create the missing PVC so the pod can be scheduled and start successfully.
 
-== Explore the Problem
+== Learning objectives
+
+* Identify a `Pending` pod caused by a missing PersistentVolumeClaim using `oc describe pod` and events
+* Understand how pod scheduling fails when referenced PVCs do not exist
+* Apply a PVC manifest to create the missing storage resource and allow the pod to be scheduled
+
+== Exercise 1: Investigate the problem
+
+=== Explore the problem
 
 include::partial$open-web-terminal.adoc[]
 
@@ -32,12 +40,12 @@ include::partial$check-events.adoc[]
 Look for an event message similar to:
 
 [.console-output]
-[source]
+[source,text]
 ----
 Warning  FailedScheduling  ...  persistentvolumeclaim "data-volume" not found
 ----
 
-== Diagnose
+=== Diagnose
 
 [tabs]
 ====
@@ -78,7 +86,7 @@ oc get pvc data-volume -n {module_namespace}
 --
 ====
 
-== Hints
+=== Hints
 
 [%collapsible]
 .Hint 1 -- Where to look
@@ -98,7 +106,9 @@ You need to create a PersistentVolumeClaim named `data-volume` with `ReadWriteOn
 Create the PVC with `oc apply -f` using a YAML manifest, or use `oc create` to create it imperatively. You do not need to specify a StorageClass -- the cluster default will be used.
 ====
 
-== Fix the Issue
+== Exercise 2: Resolve the issue
+
+=== Fix the issue
 
 Create the missing PersistentVolumeClaim named `data-volume` in the `{module_namespace}` namespace. It should use `ReadWriteOnce` access mode.
 
@@ -125,7 +135,7 @@ EOF
 The PVC will bind to an available PV, and the pod will transition from `Pending` to `Running`.
 ====
 
-== Verify Your Fix
+=== Verify your fix
 
 Check that the PVC is bound:
 

@@ -1,4 +1,4 @@
-// Showroom runtime attributes — injected by AgnosticD ocp4_workload_showroom at build time.
+// Showroom runtime attributes -- injected by AgnosticD ocp4_workload_showroom at build time.
 // Local development fallbacks (overridden in deployed environments):
 :user: user1
 :password: openshift
