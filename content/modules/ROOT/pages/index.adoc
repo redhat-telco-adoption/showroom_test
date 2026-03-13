@@ -125,21 +125,6 @@ Each lab also provides Web Console instructions as an alternative to the CLI. Th
 
 This workshop targets OpenShift 4.18 or later. All commands and features shown are available in current OpenShift 4.x releases.
 
-== How to use this guide
-
-Before you begin, make sure the URL of this workshop guide includes your user parameters. Your instructor will provide a URL like:
-
-[source,text]
-----
-https://<workshop-url>?USER=user1&PASSWORD=openshift-workshop&CLUSTER_SUBDOMAIN=apps.cluster.example.com
-----
-
-All commands in this guide will automatically substitute your username and cluster details when the URL parameters are set correctly.
-
-Start with xref:00-setup.adoc[Environment Setup] to verify your access, then work through the labs at your own pace.
-
-TIP: Each lab includes progressive hints and a full solution. Try to solve each one before looking at the hints!
-
 == Reference
 
 See the xref:99-cheatsheet.adoc[oc Cheat Sheet] for a quick reference of commonly used troubleshooting commands.

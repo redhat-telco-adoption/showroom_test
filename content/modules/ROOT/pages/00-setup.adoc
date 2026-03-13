@@ -9,26 +9,18 @@ Before starting the labs, verify that your environment is set up correctly.
 * Confirm that all 6 workshop namespaces are available and contain pre-deployed lab workloads
 * Navigate the Showroom interface to use the embedded terminal and Web Console side by side
 
-== Step 1: Enter your workshop credentials
+== Step 1: Your workshop credentials
 
-Look for the red credential bar at the top of this page. Enter:
+These are your individual workshop credentials
 
-* *Username* -- your assigned username (e.g. `user1`)
-* *Cluster subdomain* -- provided by your instructor (e.g. `apps.cluster-xxxx.example.com`)
-
-Then click *Set Credentials*. All commands and URLs throughout the workshop guide will update automatically to use your values.
-
-[TIP]
-====
-Once set, your credentials are preserved as you navigate between lab pages.
-If you see `{user}` in any command, click *Change* in the credential bar and re-enter your details.
-====
+* *Username:* `{user}`
+* *Password:* `{password}`
 
 == Step 2: Log in to the OpenShift web console
 
 image::setup-showroom-split-view.png[Showroom split view with lab instructions on the left and OCP Console login on the right,link=self,window=blank]
 
-Click the *Web Console* tab in the right panel of this page to open the embedded OpenShift web console.
+Click the *OCP Console* tab in the right panel of this page to open the embedded OpenShift web console.
 
 Log in with the credentials provided by your instructor:
 
@@ -50,7 +42,7 @@ In the *Terminal* tab on the right, verify you are logged in as your user:
 [.console-output]
 [source,bash,subs="attributes+"]
 ----
-{user}
+system:serviceaccount:showroom-{guid}-{user}:showroom
 ----
 
 == Step 4: Verify namespace access
