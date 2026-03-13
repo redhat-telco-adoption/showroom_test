@@ -20,6 +20,8 @@ If you see `{user}` in any command, click *Change* in the credential bar and re-
 
 == Step 2: Log In to the OpenShift Web Console
 
+image::setup-showroom-split-view.png[Showroom split view with lab instructions on the left and OCP Console login on the right]
+
 Click the *Web Console* tab in the right panel of this page to open the embedded OpenShift web console.
 
 Log in with the credentials provided by your instructor:
