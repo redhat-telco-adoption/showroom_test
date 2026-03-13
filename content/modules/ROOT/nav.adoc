@@ -33,6 +33,4 @@
 ** xref:06-03-wrong-image-tag.adoc[Lab 6.3: Wrong Image Tag]
 
 * xref:99-conclusion.adoc[Conclusion]
-
-* Reference
-** xref:99-cheatsheet.adoc[oc Cheat Sheet]
+* xref:99-cheatsheet.adoc[oc Cheat Sheet]
