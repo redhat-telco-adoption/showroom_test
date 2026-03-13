@@ -1,5 +1,6 @@
 = Lab 4.4: NetworkPolicy Blocking Traffic
 include::_attributes.adoc[]
+:module_namespace: {ns_networking}
 
 [.label.label-red]#Advanced# | *Persona:* Platform Engineer | *Category:* Networking & Routing
 
@@ -34,7 +35,7 @@ The frontend Route loads but shows: *"Error: Connection to backend timed out."*
 Web Console::
 +
 --
-. Navigate to *Networking -> NetworkPolicies* in namespace `{user}-lab`
+. Navigate to *Networking -> NetworkPolicies* in namespace `{module_namespace}`
 . Find `lab-4-4-backend-ingress` and review its rules
 . Note that it allows ingress only from pods with label `role: api-gateway`
 . Check the frontend pod labels -- it has `role: frontend`, not `role: api-gateway`
@@ -48,7 +49,7 @@ Test connectivity from the frontend to the backend:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc rsh deployment/lab-4-4-frontend -n {user}-lab
+oc rsh deployment/lab-4-4-frontend -n {module_namespace}
 ----
 
 [.console-input]
@@ -70,7 +71,7 @@ Check the NetworkPolicy:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc describe networkpolicy lab-4-4-backend-ingress -n {user}-lab
+oc describe networkpolicy lab-4-4-backend-ingress -n {module_namespace}
 ----
 
 Check the frontend pod labels:
@@ -78,7 +79,7 @@ Check the frontend pod labels:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pods -l app=lab-4-4-frontend -n {user}-lab --show-labels
+oc get pods -l app=lab-4-4-frontend -n {module_namespace} --show-labels
 ----
 
 The NetworkPolicy allows from `role: api-gateway`, but the frontend has `role: frontend`.
@@ -117,7 +118,7 @@ Edit the NetworkPolicy:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc edit networkpolicy lab-4-4-backend-ingress -n {user}-lab
+oc edit networkpolicy lab-4-4-backend-ingress -n {module_namespace}
 ----
 
 Change the ingress `from` selector from:
@@ -145,7 +146,7 @@ Or use patch:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc patch networkpolicy lab-4-4-backend-ingress -n {user}-lab --type=json \
+oc patch networkpolicy lab-4-4-backend-ingress -n {module_namespace} --type=json \
   -p='[{"op": "replace", "path": "/spec/ingress/0/from/0/podSelector/matchLabels/role", "value": "frontend"}]'
 ----
 ====
@@ -157,7 +158,7 @@ Test connectivity from the frontend:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc rsh deployment/lab-4-4-frontend -n {user}-lab
+oc rsh deployment/lab-4-4-frontend -n {module_namespace}
 ----
 
 [.console-input]

@@ -1,5 +1,6 @@
 = Lab 2.2: PVC Pending
 include::_attributes.adoc[]
+:module_namespace: {ns_storage}
 
 [.label.label-yellow]#Intermediate# | *Persona:* Platform Engineer | *Category:* Storage
 
@@ -29,7 +30,7 @@ Check the PVC status:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pvc -n {user}-lab
+oc get pvc -n {module_namespace}
 ----
 
 [.console-output]
@@ -46,7 +47,7 @@ lab-2-2-data      Pending                                      gold-storage   2m
 Web Console::
 +
 --
-. Navigate to *Storage -> PersistentVolumeClaims* in namespace `{user}-lab`
+. Navigate to *Storage -> PersistentVolumeClaims* in namespace `{module_namespace}`
 . Click on `lab-2-2-data` -- notice the status is `Pending`
 . Review the *Events* tab for provisioning errors
 . Note the StorageClass `gold-storage` -- navigate to *Storage -> StorageClasses* and confirm it does not exist
@@ -58,7 +59,7 @@ Web Terminal (`oc`)::
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc describe pvc lab-2-2-data -n {user}-lab
+oc describe pvc lab-2-2-data -n {module_namespace}
 ----
 
 Look for the event:
@@ -111,7 +112,7 @@ Delete the broken PVC:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc delete pvc lab-2-2-data -n {user}-lab
+oc delete pvc lab-2-2-data -n {module_namespace}
 ----
 
 Create a corrected PVC without specifying a StorageClass (uses the default):
@@ -119,7 +120,7 @@ Create a corrected PVC without specifying a StorageClass (uses the default):
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-cat <<'EOF' | oc apply -n {user}-lab -f -
+cat <<'EOF' | oc apply -n {module_namespace} -f -
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -138,7 +139,7 @@ Delete the pending pod to trigger rescheduling:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc delete pod -l app=lab-2-2-app -n {user}-lab
+oc delete pod -l app=lab-2-2-app -n {module_namespace}
 ----
 ====
 
@@ -149,7 +150,7 @@ Check that the PVC is now bound:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pvc lab-2-2-data -n {user}-lab
+oc get pvc lab-2-2-data -n {module_namespace}
 ----
 
 [.console-output]

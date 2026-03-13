@@ -1,5 +1,6 @@
 = Lab 4.1: Service Selector Mismatch
 include::_attributes.adoc[]
+:module_namespace: {ns_networking}
 
 [.label.label-yellow]#Intermediate# | *Persona:* Developer | *Category:* Networking & Routing
 
@@ -29,7 +30,7 @@ But the Route returns 503:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-curl -s -o /dev/null -w "%\{http_code}" $(oc get route lab-4-1-route -n {user}-lab -o jsonpath='{.spec.host}') -k
+curl -s -o /dev/null -w "%\{http_code}" $(oc get route lab-4-1-route -n {module_namespace} -o jsonpath='{.spec.host}') -k
 ----
 
 [.console-output]
@@ -45,7 +46,7 @@ curl -s -o /dev/null -w "%\{http_code}" $(oc get route lab-4-1-route -n {user}-l
 Web Console::
 +
 --
-. Navigate to *Networking -> Services* in namespace `{user}-lab`
+. Navigate to *Networking -> Services* in namespace `{module_namespace}`
 . Click `lab-4-1-svc` and note the *Selector* field (e.g., `app=myapp`)
 . Navigate to *Workloads -> Pods* and click on the running pod
 . Check the pod's *Labels* -- notice the label is `app=my-app` (with a hyphen)
@@ -60,7 +61,7 @@ Check the Service selector:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get svc lab-4-1-svc -n {user}-lab -o jsonpath='{.spec.selector}'
+oc get svc lab-4-1-svc -n {module_namespace} -o jsonpath='{.spec.selector}'
 ----
 
 [.console-output]
@@ -74,7 +75,7 @@ Check the pod labels:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pods -n {user}-lab -l app=lab-4-1-app --show-labels
+oc get pods -n {module_namespace} -l app=lab-4-1-app --show-labels
 ----
 
 Check if the Service has any endpoints:
@@ -82,7 +83,7 @@ Check if the Service has any endpoints:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get endpoints lab-4-1-svc -n {user}-lab
+oc get endpoints lab-4-1-svc -n {module_namespace}
 ----
 
 [.console-output]
@@ -126,7 +127,7 @@ Update the Service selector to match the actual pod labels so that endpoints are
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc patch svc lab-4-1-svc -n {user}-lab \
+oc patch svc lab-4-1-svc -n {module_namespace} \
   --type=json -p='[{"op": "replace", "path": "/spec/selector/app", "value": "my-app"}]'
 ----
 
@@ -135,7 +136,7 @@ Alternatively:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc edit svc lab-4-1-svc -n {user}-lab
+oc edit svc lab-4-1-svc -n {module_namespace}
 ----
 
 Change `app: myapp` to `app: my-app` under `spec.selector`.
@@ -148,7 +149,7 @@ Check that endpoints are now populated:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get endpoints lab-4-1-svc -n {user}-lab
+oc get endpoints lab-4-1-svc -n {module_namespace}
 ----
 
 [.console-output]
@@ -163,7 +164,7 @@ Test the Route:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-curl -s $(oc get route lab-4-1-route -n {user}-lab -o jsonpath='{.spec.host}') -k | head -5
+curl -s $(oc get route lab-4-1-route -n {module_namespace} -o jsonpath='{.spec.host}') -k | head -5
 ----
 
 include::partial$verify-route.adoc[]

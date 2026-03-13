@@ -1,5 +1,6 @@
 = Lab 5.3: Quota Exceeded
 include::_attributes.adoc[]
+:module_namespace: {ns_resources}
 
 [.label.label-yellow]#Intermediate# | *Persona:* Platform Engineer | *Category:* Resource Limits & Scheduling
 
@@ -29,7 +30,7 @@ Check the Deployment status:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get deployment lab-5-3-app -n {user}-lab
+oc get deployment lab-5-3-app -n {module_namespace}
 ----
 
 [.console-output]
@@ -48,7 +49,7 @@ Only 1 of 3 desired replicas is running.
 Web Console::
 +
 --
-. Navigate to *Workloads -> Deployments* in namespace `{user}-lab`
+. Navigate to *Workloads -> Deployments* in namespace `{module_namespace}`
 . Click `lab-5-3-app` -- notice only 1/3 replicas are available
 . Check the *Events* tab for quota exceeded errors
 . Navigate to *Administration -> ResourceQuotas* to see the namespace limits
@@ -63,7 +64,7 @@ Check the ReplicaSet events:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc describe replicaset -l app=lab-5-3-app -n {user}-lab
+oc describe replicaset -l app=lab-5-3-app -n {module_namespace}
 ----
 
 Look for quota errors:
@@ -79,20 +80,20 @@ Check the ResourceQuota:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get resourcequota -n {user}-lab
+oc get resourcequota -n {module_namespace}
 ----
 
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc describe resourcequota lab-quota -n {user}-lab
+oc describe resourcequota lab-quota -n {module_namespace}
 ----
 
 [.console-output]
 [source,subs="attributes+"]
 ----
 Name:       lab-quota
-Namespace:  {user}-lab
+Namespace:  {module_namespace}
 Resource    Used    Hard
 --------    ----    ----
 memory      256Mi   512Mi
@@ -133,7 +134,7 @@ Scale down to 2 replicas:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc scale deployment lab-5-3-app --replicas=2 -n {user}-lab
+oc scale deployment lab-5-3-app --replicas=2 -n {module_namespace}
 ----
 
 Reduce memory requests:
@@ -144,7 +145,7 @@ Reduce memory requests:
 oc set resources deployment/lab-5-3-app \
   --requests=memory=200Mi \
   --limits=memory=200Mi \
-  -n {user}-lab
+  -n {module_namespace}
 ----
 ====
 
@@ -155,7 +156,7 @@ Check that all desired replicas are running:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get deployment lab-5-3-app -n {user}-lab
+oc get deployment lab-5-3-app -n {module_namespace}
 ----
 
 [.console-output]
@@ -170,7 +171,7 @@ Verify quota usage:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc describe resourcequota lab-quota -n {user}-lab
+oc describe resourcequota lab-quota -n {module_namespace}
 ----
 
 All requested replicas should be running within the quota limits.

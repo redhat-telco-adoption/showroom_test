@@ -1,5 +1,6 @@
 = Lab 5.2: OOMKilled
 include::_attributes.adoc[]
+:module_namespace: {ns_resources}
 
 [.label.label-yellow]#Intermediate# | *Persona:* Developer | *Category:* Resource Limits & Scheduling
 
@@ -29,7 +30,7 @@ Check the pod details:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pod -l app=lab-5-2-app -n {user}-lab -o jsonpath='{.items[0].status.containerStatuses[0].lastState.terminated}' | python3 -m json.tool
+oc get pod -l app=lab-5-2-app -n {module_namespace} -o jsonpath='{.items[0].status.containerStatuses[0].lastState.terminated}' | python3 -m json.tool
 ----
 
 [.console-output]
@@ -48,7 +49,7 @@ oc get pod -l app=lab-5-2-app -n {user}-lab -o jsonpath='{.items[0].status.conta
 Web Console::
 +
 --
-. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Navigate to *Workloads -> Pods* in namespace `{module_namespace}`
 . Click the `lab-5-2-app` pod
 . In the *Details* tab, check the *Status* section -- look for `OOMKilled` in the last state
 . Navigate to *Workloads -> Deployments*, click `lab-5-2-app`, and check the YAML
@@ -61,7 +62,7 @@ Web Terminal (`oc`)::
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc describe pod -l app=lab-5-2-app -n {user}-lab
+oc describe pod -l app=lab-5-2-app -n {module_namespace}
 ----
 
 Look for:
@@ -79,7 +80,7 @@ Check the current memory limit:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get deployment lab-5-2-app -n {user}-lab -o jsonpath='{.spec.template.spec.containers[0].resources}'
+oc get deployment lab-5-2-app -n {module_namespace} -o jsonpath='{.spec.template.spec.containers[0].resources}'
 ----
 
 [.console-output]
@@ -123,7 +124,7 @@ Increase the memory limit for the Deployment so the application has enough memor
 oc set resources deployment/lab-5-2-app \
   --requests=memory=128Mi \
   --limits=memory=256Mi \
-  -n {user}-lab
+  -n {module_namespace}
 ----
 
 This triggers a new rollout with sufficient memory allocation.

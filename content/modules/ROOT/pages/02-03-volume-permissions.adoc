@@ -1,5 +1,6 @@
 = Lab 2.3: Volume Permissions
 include::_attributes.adoc[]
+:module_namespace: {ns_storage}
 
 [.label.label-yellow]#Intermediate# | *Persona:* Platform Engineer | *Category:* Storage
 
@@ -29,7 +30,7 @@ Check container logs:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc logs -l app=lab-2-3-app -n {user}-lab --previous
+oc logs -l app=lab-2-3-app -n {module_namespace} --previous
 ----
 
 [.console-output]
@@ -47,7 +48,7 @@ Writing data to /data/output.log
 Web Console::
 +
 --
-. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Navigate to *Workloads -> Pods* in namespace `{module_namespace}`
 . Click on the `lab-2-3-app` pod
 . Review the *Logs* tab to see the `Permission denied` error
 . Click the *Terminal* tab to open a shell in the container (if the pod is running)
@@ -62,7 +63,7 @@ If the pod is running (even briefly), exec into it to check permissions:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc debug deployment/lab-2-3-app -n {user}-lab -- ls -la /data
+oc debug deployment/lab-2-3-app -n {module_namespace} -- ls -la /data
 ----
 
 Check what user the container runs as:
@@ -70,7 +71,7 @@ Check what user the container runs as:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc debug deployment/lab-2-3-app -n {user}-lab -- id
+oc debug deployment/lab-2-3-app -n {module_namespace} -- id
 ----
 
 You will likely see that the volume is owned by `root` but the container runs as a non-root user (e.g., UID 1000).
@@ -107,7 +108,7 @@ Modify the Deployment's pod security context to ensure the mounted volume is acc
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc patch deployment lab-2-3-app -n {user}-lab --type=json \
+oc patch deployment lab-2-3-app -n {module_namespace} --type=json \
   -p='[{"op": "add", "path": "/spec/template/spec/securityContext", "value": {"fsGroup": 1000}}]'
 ----
 
@@ -116,7 +117,7 @@ Alternatively, edit the Deployment YAML directly:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc edit deployment lab-2-3-app -n {user}-lab
+oc edit deployment lab-2-3-app -n {module_namespace}
 ----
 
 Add under `spec.template.spec`:
@@ -148,7 +149,7 @@ Verify the volume permissions:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc exec deployment/lab-2-3-app -n {user}-lab -- ls -la /data
+oc exec deployment/lab-2-3-app -n {module_namespace} -- ls -la /data
 ----
 
 The `/data` directory should now show group ownership of `1000`.

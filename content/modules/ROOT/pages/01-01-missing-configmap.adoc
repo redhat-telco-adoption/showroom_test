@@ -1,5 +1,6 @@
 = Lab 1.1: Missing ConfigMap
 include::_attributes.adoc[]
+:module_namespace: {ns_configuration}
 
 [.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Configuration & Resources
 
@@ -43,7 +44,7 @@ Warning  Failed  ...  configmap "app-config" not found
 Web Console::
 +
 --
-. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Navigate to *Workloads -> Pods* in namespace `{module_namespace}`
 . Click on the `lab-1-1-app` pod
 . Review the *Events* tab at the bottom of the page
 . Note the error message referencing a missing ConfigMap named `app-config`
@@ -56,7 +57,7 @@ Web Terminal (`oc`)::
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc describe pod -l app=lab-1-1-app -n {user}-lab
+oc describe pod -l app=lab-1-1-app -n {module_namespace}
 ----
 
 Look for the *Events* section at the bottom of the output. You will see a message indicating that the ConfigMap `app-config` is not found.
@@ -66,7 +67,7 @@ Verify the ConfigMap does not exist:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get configmap app-config -n {user}-lab
+oc get configmap app-config -n {module_namespace}
 ----
 
 [.console-output]
@@ -87,7 +88,7 @@ The pod is trying to mount a ConfigMap as a volume. Check the Deployment spec to
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get deployment lab-1-1-app -n {user}-lab -o yaml | grep -A 10 volumes
+oc get deployment lab-1-1-app -n {module_namespace} -o yaml | grep -A 10 volumes
 ----
 ====
 
@@ -105,7 +106,7 @@ Create a ConfigMap with the name `app-config` and a key `index.html`. The value 
 
 == Fix the Issue
 
-You need to create the missing ConfigMap named `app-config` in the `{user}-lab` namespace. The ConfigMap must contain a key called `index.html` with HTML content that the nginx container will serve.
+You need to create the missing ConfigMap named `app-config` in the `{module_namespace}` namespace. The ConfigMap must contain a key called `index.html` with HTML content that the nginx container will serve.
 
 [%collapsible]
 .Reveal Solution (Instructor Reference Only)
@@ -113,7 +114,7 @@ You need to create the missing ConfigMap named `app-config` in the `{user}-lab` 
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-cat <<'EOF' | oc apply -n {user}-lab -f -
+cat <<'EOF' | oc apply -n {module_namespace} -f -
 apiVersion: v1
 kind: ConfigMap
 metadata:

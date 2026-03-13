@@ -3,5 +3,5 @@ Check the status of pods in your namespace:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pods -n {user}-lab
+oc get pods -n {module_namespace}
 ----

@@ -3,7 +3,7 @@ Verify the application Route:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get route -n {user}-lab
+oc get route -n {module_namespace}
 ----
 
 Copy the URL from the HOST/PORT column and open it in your browser. You should see the application page.

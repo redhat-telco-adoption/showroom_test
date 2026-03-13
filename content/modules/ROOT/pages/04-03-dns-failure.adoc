@@ -1,5 +1,6 @@
 = Lab 4.3: DNS Resolution Failure
 include::_attributes.adoc[]
+:module_namespace: {ns_networking}
 
 [.label.label-red]#Advanced# | *Persona:* Platform Engineer | *Category:* Networking & Routing
 
@@ -35,7 +36,7 @@ Web Console::
 +
 --
 . Access the frontend Route URL -- note the "Cannot connect to backend service" error
-. Navigate to *Networking -> NetworkPolicies* in namespace `{user}-lab`
+. Navigate to *Networking -> NetworkPolicies* in namespace `{module_namespace}`
 . Review the NetworkPolicy applied to the frontend -- check the *egress* rules
 . Notice that the egress rules do not allow UDP port 53 (DNS)
 --
@@ -48,7 +49,7 @@ Exec into the frontend pod and test DNS:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc rsh deployment/lab-4-3-frontend -n {user}-lab
+oc rsh deployment/lab-4-3-frontend -n {module_namespace}
 ----
 
 Inside the pod:
@@ -72,13 +73,13 @@ Check NetworkPolicies:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get networkpolicy -n {user}-lab
+oc get networkpolicy -n {module_namespace}
 ----
 
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc describe networkpolicy lab-4-3-frontend-egress -n {user}-lab
+oc describe networkpolicy lab-4-3-frontend-egress -n {module_namespace}
 ----
 
 Notice the egress rules only allow TCP traffic -- UDP port 53 for DNS is missing.
@@ -117,7 +118,7 @@ Edit the NetworkPolicy:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc edit networkpolicy lab-4-3-frontend-egress -n {user}-lab
+oc edit networkpolicy lab-4-3-frontend-egress -n {module_namespace}
 ----
 
 Add the following egress rule to the existing `egress` list:
@@ -134,7 +135,7 @@ Or patch it:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-cat <<'EOF' | oc apply -n {user}-lab -f -
+cat <<'EOF' | oc apply -n {module_namespace} -f -
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -163,7 +164,7 @@ Exec into the frontend pod and test DNS:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc rsh deployment/lab-4-3-frontend -n {user}-lab
+oc rsh deployment/lab-4-3-frontend -n {module_namespace}
 ----
 
 [.console-input]
@@ -178,7 +179,7 @@ nslookup lab-4-3-backend-svc
 Server:    172.30.0.10
 Address:   172.30.0.10#53
 
-Name:      lab-4-3-backend-svc.{user}-lab.svc.cluster.local
+Name:      lab-4-3-backend-svc.{module_namespace}.svc.cluster.local
 Address:   172.30.x.x
 ----
 

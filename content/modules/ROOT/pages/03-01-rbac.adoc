@@ -1,24 +1,25 @@
 = Lab 3.1: RBAC Configuration
 include::_attributes.adoc[]
+:module_namespace: {ns_security}
 
 [.label.label-yellow]#Intermediate# | *Persona:* Platform Engineer | *Category:* Security & Access Control
 
 == Overview
 
-In the `{user}-admin-lab` namespace, a Job runs under the `deploy-bot` ServiceAccount and attempts to create a Deployment. The Job fails because the ServiceAccount lacks the necessary RBAC permissions. Your mission is to diagnose the RBAC denial and create the appropriate Role and RoleBinding so the Job can succeed.
+In the `{module_namespace}` namespace, a Job runs under the `deploy-bot` ServiceAccount and attempts to create a Deployment. The Job fails because the ServiceAccount lacks the necessary RBAC permissions. Your mission is to diagnose the RBAC denial and create the appropriate Role and RoleBinding so the Job can succeed.
 
 == Explore the Problem
 
 include::partial$open-web-terminal.adoc[]
 
-NOTE: This lab uses the `{user}-admin-lab` namespace.
+NOTE: This lab uses the `{module_namespace}` namespace.
 
-Check pod status in the admin namespace:
+Check pod status in the security namespace:
 
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pods -n {user}-admin-lab
+oc get pods -n {module_namespace}
 ----
 
 You should see something like:
@@ -35,13 +36,13 @@ Check the Job logs:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc logs -l job-name=lab-3-1-deployer-job -n {user}-admin-lab
+oc logs -l job-name=lab-3-1-deployer-job -n {module_namespace}
 ----
 
 [.console-output]
 [source,subs="attributes+"]
 ----
-Error from server (Forbidden): deployments.apps is forbidden: User "system:serviceaccount:{user}-admin-lab:deploy-bot" cannot create resource "deployments" in API group "apps" in the namespace "{user}-admin-lab"
+Error from server (Forbidden): deployments.apps is forbidden: User "system:serviceaccount:{module_namespace}:deploy-bot" cannot create resource "deployments" in API group "apps" in the namespace "{module_namespace}"
 ----
 
 == Diagnose
@@ -51,7 +52,7 @@ Error from server (Forbidden): deployments.apps is forbidden: User "system:servi
 Web Console::
 +
 --
-. Switch to namespace `{user}-admin-lab`
+. Switch to namespace `{module_namespace}`
 . Navigate to *Workloads -> Jobs* and click `lab-3-1-deployer-job`
 . Review the pod logs to see the RBAC error
 . Navigate to *User Management -> RoleBindings* and check what permissions `deploy-bot` currently has
@@ -66,7 +67,7 @@ Check what the ServiceAccount can do:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc auth can-i create deployments --as=system:serviceaccount:{user}-admin-lab:deploy-bot -n {user}-admin-lab
+oc auth can-i create deployments --as=system:serviceaccount:{module_namespace}:deploy-bot -n {module_namespace}
 ----
 
 [.console-output]
@@ -80,7 +81,7 @@ List existing RoleBindings:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get rolebindings -n {user}-admin-lab
+oc get rolebindings -n {module_namespace}
 ----
 
 Check if the ServiceAccount exists:
@@ -88,7 +89,7 @@ Check if the ServiceAccount exists:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get serviceaccount deploy-bot -n {user}-admin-lab
+oc get serviceaccount deploy-bot -n {module_namespace}
 ----
 --
 ====
@@ -115,7 +116,7 @@ Create a Role with `oc create role` and then bind it with `oc create rolebinding
 
 == Fix the Issue
 
-Create a Role granting deployment management permissions and bind it to the `deploy-bot` ServiceAccount in the `{user}-admin-lab` namespace. Then re-run the Job.
+Create a Role granting deployment management permissions and bind it to the `deploy-bot` ServiceAccount in the `{module_namespace}` namespace. Then re-run the Job.
 
 [%collapsible]
 .Reveal Solution (Instructor Reference Only)
@@ -128,7 +129,7 @@ Create the Role:
 oc create role deployer \
   --verb=create,get,list,update \
   --resource=deployments.apps \
-  -n {user}-admin-lab
+  -n {module_namespace}
 ----
 
 Create the RoleBinding:
@@ -138,8 +139,8 @@ Create the RoleBinding:
 ----
 oc create rolebinding deployer-binding \
   --role=deployer \
-  --serviceaccount={user}-admin-lab:deploy-bot \
-  -n {user}-admin-lab
+  --serviceaccount={module_namespace}:deploy-bot \
+  -n {module_namespace}
 ----
 
 Delete the failed Job and recreate it:
@@ -147,11 +148,11 @@ Delete the failed Job and recreate it:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc delete job lab-3-1-deployer-job -n {user}-admin-lab
+oc delete job lab-3-1-deployer-job -n {module_namespace}
 oc create job lab-3-1-deployer-job \
   --from=cronjob/lab-3-1-deployer-job \
-  -n {user}-admin-lab 2>/dev/null || \
-oc get job lab-3-1-deployer-job -n {user}-admin-lab -o yaml | \
+  -n {module_namespace} 2>/dev/null || \
+oc get job lab-3-1-deployer-job -n {module_namespace} -o yaml | \
   oc replace --force -f -
 ----
 
@@ -165,7 +166,7 @@ Verify the RBAC permissions:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc auth can-i create deployments --as=system:serviceaccount:{user}-admin-lab:deploy-bot -n {user}-admin-lab
+oc auth can-i create deployments --as=system:serviceaccount:{module_namespace}:deploy-bot -n {module_namespace}
 ----
 
 [.console-output]
@@ -179,7 +180,7 @@ Check that the Job completed:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get jobs -n {user}-admin-lab
+oc get jobs -n {module_namespace}
 ----
 
 [.console-output]
@@ -194,7 +195,7 @@ Check the Deployment was created by the Job:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get deployment lab-3-1-app -n {user}-admin-lab
+oc get deployment lab-3-1-app -n {module_namespace}
 ----
 
 Verify the Route:
@@ -202,7 +203,7 @@ Verify the Route:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get route -n {user}-admin-lab
+oc get route -n {module_namespace}
 ----
 
 Open the Route URL -- you should see the application page served by the Deployment that the Job created.

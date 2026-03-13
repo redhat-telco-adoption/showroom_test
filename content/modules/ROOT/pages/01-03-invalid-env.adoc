@@ -1,5 +1,6 @@
 = Lab 1.3: Invalid Environment Variables
 include::_attributes.adoc[]
+:module_namespace: {ns_configuration}
 
 [.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Configuration & Resources
 
@@ -29,7 +30,7 @@ Check the container logs:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc logs -l app=lab-1-3-app -n {user}-lab --previous
+oc logs -l app=lab-1-3-app -n {module_namespace} --previous
 ----
 
 [.console-output]
@@ -45,7 +46,7 @@ ERROR: DATABASE_URL is not set. Exiting.
 Web Console::
 +
 --
-. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Navigate to *Workloads -> Pods* in namespace `{module_namespace}`
 . Click on the `lab-1-3-app` pod
 . Click the *Logs* tab to see the error message
 . Navigate to *Workloads -> Deployments* and click `lab-1-3-app`
@@ -61,7 +62,7 @@ Check the logs for the error:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc logs -l app=lab-1-3-app -n {user}-lab --previous
+oc logs -l app=lab-1-3-app -n {module_namespace} --previous
 ----
 
 Inspect the current Deployment environment variables:
@@ -69,7 +70,7 @@ Inspect the current Deployment environment variables:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get deployment lab-1-3-app -n {user}-lab -o jsonpath='{.spec.template.spec.containers[0].env}' | python3 -m json.tool
+oc get deployment lab-1-3-app -n {module_namespace} -o jsonpath='{.spec.template.spec.containers[0].env}' | python3 -m json.tool
 ----
 --
 ====
@@ -107,7 +108,7 @@ Add the required environment variables to the `lab-1-3-app` Deployment. The appl
 oc set env deployment/lab-1-3-app \
   DATABASE_URL=postgresql://localhost:5432/mydb \
   APP_NAME="Troubleshooting Workshop" \
-  -n {user}-lab
+  -n {module_namespace}
 ----
 
 This triggers a new rollout. The pod should start successfully with the environment variables set.

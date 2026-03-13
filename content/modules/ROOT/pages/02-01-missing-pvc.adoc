@@ -1,5 +1,6 @@
 = Lab 2.1: Missing PVC
 include::_attributes.adoc[]
+:module_namespace: {ns_storage}
 
 [.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Storage
 
@@ -43,7 +44,7 @@ Warning  FailedScheduling  ...  persistentvolumeclaim "data-volume" not found
 Web Console::
 +
 --
-. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Navigate to *Workloads -> Pods* in namespace `{module_namespace}`
 . Click the `lab-2-1-app` pod -- notice it is in `Pending` state
 . Review the *Events* tab for the PVC error
 . Navigate to *Storage -> PersistentVolumeClaims* and confirm `data-volume` does not exist
@@ -56,7 +57,7 @@ Web Terminal (`oc`)::
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc describe pod -l app=lab-2-1-app -n {user}-lab
+oc describe pod -l app=lab-2-1-app -n {module_namespace}
 ----
 
 Check the *Events* section for the PVC error. Then inspect the Deployment:
@@ -64,7 +65,7 @@ Check the *Events* section for the PVC error. Then inspect the Deployment:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get deployment lab-2-1-app -n {user}-lab -o yaml | grep -A 10 volumes
+oc get deployment lab-2-1-app -n {module_namespace} -o yaml | grep -A 10 volumes
 ----
 
 Verify the PVC does not exist:
@@ -72,7 +73,7 @@ Verify the PVC does not exist:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pvc data-volume -n {user}-lab
+oc get pvc data-volume -n {module_namespace}
 ----
 --
 ====
@@ -99,7 +100,7 @@ Create the PVC with `oc apply -f` using a YAML manifest, or use `oc create` to c
 
 == Fix the Issue
 
-Create the missing PersistentVolumeClaim named `data-volume` in the `{user}-lab` namespace. It should use `ReadWriteOnce` access mode.
+Create the missing PersistentVolumeClaim named `data-volume` in the `{module_namespace}` namespace. It should use `ReadWriteOnce` access mode.
 
 [%collapsible]
 .Reveal Solution (Instructor Reference Only)
@@ -107,7 +108,7 @@ Create the missing PersistentVolumeClaim named `data-volume` in the `{user}-lab`
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-cat <<'EOF' | oc apply -n {user}-lab -f -
+cat <<'EOF' | oc apply -n {module_namespace} -f -
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -131,7 +132,7 @@ Check that the PVC is bound:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pvc data-volume -n {user}-lab
+oc get pvc data-volume -n {module_namespace}
 ----
 
 [.console-output]

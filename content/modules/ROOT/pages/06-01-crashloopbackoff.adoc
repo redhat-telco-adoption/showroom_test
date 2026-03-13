@@ -1,5 +1,6 @@
 = Lab 6.1: CrashLoopBackOff
 include::_attributes.adoc[]
+:module_namespace: {ns_lifecycle}
 
 [.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Application Lifecycle
 
@@ -29,7 +30,7 @@ Check container logs:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc logs -l app=lab-6-1-app -n {user}-lab --previous
+oc logs -l app=lab-6-1-app -n {module_namespace} --previous
 ----
 
 [.console-output]
@@ -45,7 +46,7 @@ Error: failed to create containerd task: failed to create shim task: OCI runtime
 Web Console::
 +
 --
-. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Navigate to *Workloads -> Pods* in namespace `{module_namespace}`
 . Click the `lab-6-1-app` pod
 . Review the *Logs* tab -- note the "no such file or directory" error
 . Navigate to *Workloads -> Deployments*, click `lab-6-1-app`, and review the YAML
@@ -60,7 +61,7 @@ Check the Deployment's command override:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get deployment lab-6-1-app -n {user}-lab -o jsonpath='{.spec.template.spec.containers[0].command}'
+oc get deployment lab-6-1-app -n {module_namespace} -o jsonpath='{.spec.template.spec.containers[0].command}'
 ----
 
 [.console-output]
@@ -103,7 +104,7 @@ Remove the incorrect command override from the Deployment so the container uses 
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc patch deployment lab-6-1-app -n {user}-lab --type=json \
+oc patch deployment lab-6-1-app -n {module_namespace} --type=json \
   -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/command"}]'
 ----
 

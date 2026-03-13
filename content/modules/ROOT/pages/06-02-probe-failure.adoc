@@ -1,5 +1,6 @@
 = Lab 6.2: Probe Failure
 include::_attributes.adoc[]
+:module_namespace: {ns_lifecycle}
 
 [.label.label-yellow]#Intermediate# | *Persona:* Developer | *Category:* Application Lifecycle
 
@@ -33,7 +34,7 @@ Notice the pod is `Running` but `0/1` Ready, and has multiple restarts.
 Web Console::
 +
 --
-. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Navigate to *Workloads -> Pods* in namespace `{module_namespace}`
 . Click the `lab-6-2-app` pod
 . Review the *Events* tab -- look for probe failure messages:
   * `Readiness probe failed: HTTP probe failed with statuscode: 404`
@@ -48,7 +49,7 @@ Web Terminal (`oc`)::
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc describe pod -l app=lab-6-2-app -n {user}-lab
+oc describe pod -l app=lab-6-2-app -n {module_namespace}
 ----
 
 Look for probe failures in Events:
@@ -65,7 +66,7 @@ Check the probe configuration:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get deployment lab-6-2-app -n {user}-lab -o yaml | grep -A 8 'Probe'
+oc get deployment lab-6-2-app -n {module_namespace} -o yaml | grep -A 8 'Probe'
 ----
 
 [.console-output]
@@ -117,7 +118,7 @@ Update the readiness and liveness probes to use the correct path, port, and timi
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc edit deployment lab-6-2-app -n {user}-lab
+oc edit deployment lab-6-2-app -n {module_namespace}
 ----
 
 Update both probes:
@@ -143,7 +144,7 @@ Or use patch:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc patch deployment lab-6-2-app -n {user}-lab --type=json -p='[
+oc patch deployment lab-6-2-app -n {module_namespace} --type=json -p='[
   {"op": "replace", "path": "/spec/template/spec/containers/0/readinessProbe", "value": {"httpGet": {"path": "/", "port": 8080}, "initialDelaySeconds": 5, "periodSeconds": 10}},
   {"op": "replace", "path": "/spec/template/spec/containers/0/livenessProbe", "value": {"httpGet": {"path": "/", "port": 8080}, "initialDelaySeconds": 15, "periodSeconds": 20}}
 ]'

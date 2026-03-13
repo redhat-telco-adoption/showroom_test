@@ -1,5 +1,6 @@
 = Lab 4.2: Route Misconfigured
 include::_attributes.adoc[]
+:module_namespace: {ns_networking}
 
 [.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Networking & Routing
 
@@ -29,7 +30,7 @@ The Service has endpoints:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get endpoints lab-4-2-svc -n {user}-lab
+oc get endpoints lab-4-2-svc -n {module_namespace}
 ----
 
 [.console-output]
@@ -44,7 +45,7 @@ But the Route returns 503:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-curl -s -o /dev/null -w "%\{http_code}" $(oc get route lab-4-2-route -n {user}-lab -o jsonpath='{.spec.host}') -k
+curl -s -o /dev/null -w "%\{http_code}" $(oc get route lab-4-2-route -n {module_namespace} -o jsonpath='{.spec.host}') -k
 ----
 
 [.console-output]
@@ -60,7 +61,7 @@ curl -s -o /dev/null -w "%\{http_code}" $(oc get route lab-4-2-route -n {user}-l
 Web Console::
 +
 --
-. Navigate to *Networking -> Routes* in namespace `{user}-lab`
+. Navigate to *Networking -> Routes* in namespace `{module_namespace}`
 . Click `lab-4-2-route` and check the *Target Port* field -- it shows `8443`
 . Navigate to *Networking -> Services*, click `lab-4-2-svc`, and check the port -- it only exposes `8080`
 . The Route targets port `8443` but the Service only has port `8080`
@@ -74,7 +75,7 @@ Check the Route configuration:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get route lab-4-2-route -n {user}-lab -o yaml | grep targetPort
+oc get route lab-4-2-route -n {module_namespace} -o yaml | grep targetPort
 ----
 
 [.console-output]
@@ -88,7 +89,7 @@ Check the Service ports:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get svc lab-4-2-svc -n {user}-lab -o jsonpath='{.spec.ports[*]}'
+oc get svc lab-4-2-svc -n {module_namespace} -o jsonpath='{.spec.ports[*]}'
 ----
 
 [.console-output]
@@ -131,7 +132,7 @@ Update the Route's `targetPort` to match the port exposed by the Service.
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc patch route lab-4-2-route -n {user}-lab \
+oc patch route lab-4-2-route -n {module_namespace} \
   --type=json -p='[{"op": "replace", "path": "/spec/port/targetPort", "value": "8080"}]'
 ----
 ====
@@ -143,7 +144,7 @@ Test the Route:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-curl -s -o /dev/null -w "%\{http_code}" $(oc get route lab-4-2-route -n {user}-lab -o jsonpath='{.spec.host}') -k
+curl -s -o /dev/null -w "%\{http_code}" $(oc get route lab-4-2-route -n {module_namespace} -o jsonpath='{.spec.host}') -k
 ----
 
 [.console-output]

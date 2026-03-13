@@ -1,24 +1,25 @@
 = Lab 3.2: SCC Violation
 include::_attributes.adoc[]
+:module_namespace: {ns_security}
 
 [.label.label-red]#Advanced# | *Persona:* Platform Engineer | *Category:* Security & Access Control
 
 == Overview
 
-The application `lab-3-2-app` in the `{user}-admin-lab` namespace cannot start because its Deployment spec requests to run as root (UID 0). OpenShift's Security Context Constraints (SCCs) prevent this by default. Your mission is to understand why the pod is rejected and fix the issue.
+The application `lab-3-2-app` in the `{module_namespace}` namespace cannot start because its Deployment spec requests to run as root (UID 0). OpenShift's Security Context Constraints (SCCs) prevent this by default. Your mission is to understand why the pod is rejected and fix the issue.
 
 == Explore the Problem
 
 include::partial$open-web-terminal.adoc[]
 
-NOTE: This lab uses the `{user}-admin-lab` namespace.
+NOTE: This lab uses the `{module_namespace}` namespace.
 
 Check pod status:
 
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pods -n {user}-admin-lab -l app=lab-3-2-app
+oc get pods -n {module_namespace} -l app=lab-3-2-app
 ----
 
 You should see something like:
@@ -35,7 +36,7 @@ Check events:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get events -n {user}-admin-lab --sort-by='.lastTimestamp' --field-selector involvedObject.name=lab-3-2-app
+oc get events -n {module_namespace} --sort-by='.lastTimestamp' --field-selector involvedObject.name=lab-3-2-app
 ----
 
 Look for SCC-related admission errors.
@@ -47,7 +48,7 @@ Look for SCC-related admission errors.
 Web Console::
 +
 --
-. Switch to namespace `{user}-admin-lab`
+. Switch to namespace `{module_namespace}`
 . Navigate to *Workloads -> Pods* and click the `lab-3-2-app` pod
 . Review the *Events* tab -- look for SCC admission errors
 . Navigate to *Workloads -> Deployments*, click `lab-3-2-app`, and review the YAML
@@ -62,7 +63,7 @@ Examine the Deployment spec:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get deployment lab-3-2-app -n {user}-admin-lab -o yaml | grep -A 5 securityContext
+oc get deployment lab-3-2-app -n {module_namespace} -o yaml | grep -A 5 securityContext
 ----
 
 [.console-output]
@@ -77,7 +78,7 @@ Check which SCC the pod would use:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pod -l app=lab-3-2-app -n {user}-admin-lab -o yaml | grep -i scc
+oc get pod -l app=lab-3-2-app -n {module_namespace} -o yaml | grep -i scc
 ----
 --
 ====
@@ -117,7 +118,7 @@ Remove the root user requirement from the Deployment spec so it complies with Op
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc patch deployment lab-3-2-app -n {user}-admin-lab --type=json \
+oc patch deployment lab-3-2-app -n {module_namespace} --type=json \
   -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/securityContext/runAsUser"}]'
 ----
 
@@ -126,7 +127,7 @@ oc patch deployment lab-3-2-app -n {user}-admin-lab --type=json \
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc adm policy add-scc-to-user anyuid -z default -n {user}-admin-lab
+oc adm policy add-scc-to-user anyuid -z default -n {module_namespace}
 ----
 
 Then restart the pod:
@@ -134,7 +135,7 @@ Then restart the pod:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc delete pod -l app=lab-3-2-app -n {user}-admin-lab
+oc delete pod -l app=lab-3-2-app -n {module_namespace}
 ----
 ====
 
@@ -143,7 +144,7 @@ oc delete pod -l app=lab-3-2-app -n {user}-admin-lab
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pods -n {user}-admin-lab -l app=lab-3-2-app
+oc get pods -n {module_namespace} -l app=lab-3-2-app
 ----
 
 The pod should now show `Running`:
@@ -160,7 +161,7 @@ Verify the Route:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get route -n {user}-admin-lab -l app=lab-3-2-app
+oc get route -n {module_namespace} -l app=lab-3-2-app
 ----
 
 Open the Route URL -- you should see the application page loading successfully.

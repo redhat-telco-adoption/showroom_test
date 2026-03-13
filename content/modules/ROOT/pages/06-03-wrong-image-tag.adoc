@@ -1,5 +1,6 @@
 = Lab 6.3: Wrong Image Tag
 include::_attributes.adoc[]
+:module_namespace: {ns_lifecycle}
 
 [.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Application Lifecycle
 
@@ -44,7 +45,7 @@ Warning  Failed   ...  Error: ImagePullBackOff
 Web Console::
 +
 --
-. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Navigate to *Workloads -> Pods* in namespace `{module_namespace}`
 . Click the `lab-6-3-app` pod
 . Review the *Events* tab -- note the "manifest unknown" error
 . This means the image tag `v99.99` does not exist in the registry
@@ -59,7 +60,7 @@ Check the image reference:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get deployment lab-6-3-app -n {user}-lab -o jsonpath='{.spec.template.spec.containers[0].image}'
+oc get deployment lab-6-3-app -n {module_namespace} -o jsonpath='{.spec.template.spec.containers[0].image}'
 ----
 
 [.console-output]
@@ -104,7 +105,7 @@ Update the container image reference to use a valid tag that exists in the regis
 ----
 oc set image deployment/lab-6-3-app \
   lab-6-3-app=registry.access.redhat.com/ubi8/httpd-24:latest \
-  -n {user}-lab
+  -n {module_namespace}
 ----
 
 This triggers a new rollout with the correct image tag.

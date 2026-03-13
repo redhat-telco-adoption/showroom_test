@@ -49,35 +49,41 @@ oc whoami
 
 == Step 4: Verify Namespace Access
 
-You have two namespaces assigned to you:
+You have six namespaces assigned to you, one per module:
 
-* `{user}-lab` -- your primary lab namespace
-* `{user}-admin-lab` -- used for security-related labs (Module 3)
+* `{ns_configuration}` -- Module 1: Configuration labs
+* `{ns_storage}` -- Module 2: Storage labs
+* `{ns_security}` -- Module 3: Security labs
+* `{ns_networking}` -- Module 4: Networking labs
+* `{ns_resources}` -- Module 5: Resources labs
+* `{ns_lifecycle}` -- Module 6: Lifecycle labs
 
-Verify you can access your primary namespace:
+Verify you can list your namespaces:
 
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get pods -n {user}-lab
+oc get projects | grep {user}
+----
+
+You should see all six namespaces listed. Each namespace contains broken workloads for that module's lab exercises.
+
+Verify access to one namespace as an example:
+
+[.console-input]
+[source,bash,subs="attributes+"]
+----
+oc get pods -n {ns_configuration}
 ----
 
 You should see several pods in various error states -- that is expected! Each pod corresponds to a lab exercise.
-
-[.console-input]
-[source,bash,subs="attributes+"]
-----
-oc get pods -n {user}-admin-lab
-----
-
-You should also see pods in your admin namespace for the security labs.
 
 == Step 5: Explore the Web Console
 
 In the OpenShift Web Console:
 
 . Switch to the *Developer* perspective using the dropdown in the top-left
-. Select your namespace `{user}-lab` from the *Project* dropdown
+. Select your namespace `{ns_configuration}` from the *Project* dropdown
 . Click *Topology* to see the deployed applications
 . Notice the various error indicators on the application icons
 

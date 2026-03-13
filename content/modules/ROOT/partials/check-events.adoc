@@ -3,5 +3,5 @@ Check recent events in your namespace:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get events -n {user}-lab --sort-by='.lastTimestamp'
+oc get events -n {module_namespace} --sort-by='.lastTimestamp'
 ----

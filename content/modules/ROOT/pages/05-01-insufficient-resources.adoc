@@ -1,5 +1,6 @@
 = Lab 5.1: Insufficient Resources
 include::_attributes.adoc[]
+:module_namespace: {ns_resources}
 
 [.label.label-green]#Beginner# | *Persona:* Developer | *Category:* Resource Limits & Scheduling
 
@@ -43,7 +44,7 @@ Warning  FailedScheduling  ...  0/6 nodes are available: 6 Insufficient cpu, 6 I
 Web Console::
 +
 --
-. Navigate to *Workloads -> Pods* in namespace `{user}-lab`
+. Navigate to *Workloads -> Pods* in namespace `{module_namespace}`
 . Click the `lab-5-1-app` pod -- notice it is `Pending`
 . Review the *Events* tab for the scheduling failure
 . Navigate to *Workloads -> Deployments*, click `lab-5-1-app`, and check the YAML
@@ -58,7 +59,7 @@ Check what resources the pod requests:
 [.console-input]
 [source,bash,subs="attributes+"]
 ----
-oc get deployment lab-5-1-app -n {user}-lab -o jsonpath='{.spec.template.spec.containers[0].resources}' | python3 -m json.tool
+oc get deployment lab-5-1-app -n {module_namespace} -o jsonpath='{.spec.template.spec.containers[0].resources}' | python3 -m json.tool
 ----
 
 [.console-output]
@@ -119,7 +120,7 @@ Reduce the resource requests and limits in the Deployment to values that can be 
 oc set resources deployment/lab-5-1-app \
   --requests=cpu=100m,memory=128Mi \
   --limits=cpu=200m,memory=256Mi \
-  -n {user}-lab
+  -n {module_namespace}
 ----
 
 This triggers a new rollout with the reduced resource requirements. The scheduler will find a suitable node.

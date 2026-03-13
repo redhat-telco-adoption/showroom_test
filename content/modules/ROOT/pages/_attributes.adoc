@@ -5,11 +5,13 @@
 :openshift_console_url: https://console-openshift-console.apps.example.com
 :openshift_cluster_ingress_domain: apps.example.com
 
-// Derived namespace attributes (Antora resolves these from above at build time):
-:lab_namespace: {user}-lab
-:admin_namespace: {user}-admin-lab
-:workshop-namespace: {user}-lab
-:workshop-admin-namespace: {user}-admin-lab
+// Module namespace attributes:
+:ns_configuration: {user}-01-configuration
+:ns_storage: {user}-02-storage
+:ns_security: {user}-03-security
+:ns_networking: {user}-04-networking
+:ns_resources: {user}-05-resources
+:ns_lifecycle: {user}-06-lifecycle
 
 // Container image references:
 :image-nginx: registry.access.redhat.com/ubi9/nginx-124:latest
